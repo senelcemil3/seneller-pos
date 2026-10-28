@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>Şeneller POS - Kurumsal Giriş Kapısı</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.92);
+            border: 2px solid #f59e0b;
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .logo-badge {
+            width: 68px;
+            height: 68px;
+            border-radius: 18px;
+            background: #f59e0b;
+            color: #0f172a;
+            font-size: 34px;
+            font-weight: 900;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+        h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: #ffffff; }
+        .sub { font-size: 13px; color: #94a3b8; margin-bottom: 18px; }
+        .role-pill {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+        .spinner {
+            width: 42px;
+            height: 42px;
+            border: 4px solid rgba(245, 158, 11, 0.25);
+            border-top-color: #f59e0b;
+            border-radius: 50%;
+            animation: spin 0.85s linear infinite;
+            margin: 12px auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .status { font-size: 14px; color: #e2e8f0; margin-bottom: 16px; line-height: 1.45; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            margin-top: 10px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-gold { background: #f59e0b; color: #0f172a; }
+        .btn-outline { background: transparent; color: #cbd5e1; border: 1px solid #475569; }
+        .d-none { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo-badge">⚡</div>
+        <h1>ŞENELLER POS</h1>
+        <div class="sub">Kamera • Alarm • Uydu • Bilgisayar • Elektronik</div>
+        <div id="rolEtiketi" class="role-pill">Otomatik Giriş Hazırlanıyor...</div>
+        <div id="yukleniyorSpinner" class="spinner"></div>
+        <div id="durumMesaji" class="status">Canlı sunucu adresi kontrol ediliyor, lütfen bekleyin...</div>
+
+        <a id="dogrudanGirisBtn" href="#" class="btn btn-gold d-none">🚀 Uygulamaya Şimdi Gir</a>
+        <a id="yerelWifiBtn" href="#" class="btn btn-outline d-none">📶 Dükkân Wi-Fi ile Bağlan</a>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const hesap = params.get('hesap') || localStorage.getItem('snl_hesap') || 'admin';
+        localStorage.setItem('snl_hesap', hesap);
+
+        const rolEl = document.getElementById('rolEtiketi');
+        rolEl.textContent = hesap === 'admin' ? '👑 Patron (Yönetici) Otomatik Girişi' : '🛠️ Saha & Kasa Personeli Girişi';
+
+        async function aktifSunucuyuBulVeYonlendir() {
+            let hedefUrl = null;
+            let yerelUrl = 'http://192.168.1.104:5000';
+
+            // 1. Önce GitHub üzerindeki güncel aktif_adres.json dosyasını kontrol et (Operatör engeline takılmaz)
+            try {
+                const r1 = await fetch('./aktif_adres.json?t=' + Date.now(), { cache: 'no-store' });
+                if (r1.ok) {
+                    const j1 = await r1.json();
+                    if (j1.dis_url) hedefUrl = j1.dis_url;
+                    if (j1.yerel_url) yerelUrl = j1.yerel_url;
+                }
+            } catch (e) {}
+
+            // 2. Anlık ntfy kanalından daha yeni bir adres yayınlanmış mı kontrol et
+            try {
+                const r2 = await fetch('https://ntfy.sh/seneller_pos_kapi_88421/json?poll=1&since=48h', { cache: 'no-store' });
+                if (r2.ok) {
+                    const text = await r2.text();
+                    const satirlar = text.trim().split('\n').filter(Boolean);
+                    for (let i = satirlar.length - 1; i >= 0; i--) {
+                        try {
+                            const obj = JSON.parse(satirlar[i]);
+                            if (obj.event === 'message' && obj.message && obj.message.startsWith('http')) {
+                                hedefUrl = obj.message.trim().replace(/\/+$/, '');
+                                break;
+                            }
+                        } catch (e2) {}
+                    }
+                }
+            } catch (e) {}
+
+            const yerelTam = `${yerelUrl.replace(/\/+$/, '')}/oto-giris?k=snl2026pos&hesap=${encodeURIComponent(hesap)}`;
+            const yerelBtn = document.getElementById('yerelWifiBtn');
+            yerelBtn.href = yerelTam;
+            yerelBtn.classList.remove('d-none');
+
+            if (hedefUrl) {
+                const tamHedef = `${hedefUrl.replace(/\/+$/, '')}/oto-giris?k=snl2026pos&hesap=${encodeURIComponent(hesap)}`;
+                const btn = document.getElementById('dogrudanGirisBtn');
+                btn.href = tamHedef;
+                btn.classList.remove('d-none');
+                document.getElementById('durumMesaji').textContent = 'Canlı sunucu bulundu! Otomatik yönlendiriliyorsunuz...';
+                setTimeout(() => { window.location.replace(tamHedef); }, 350);
+            } else {
+                document.getElementById('yukleniyorSpinner').classList.add('d-none');
+                document.getElementById('durumMesaji').textContent = 'Dış ağ adresi bekleniyor. Dükkân Wi-Fi ağındaysanız aşağıdaki butonla hemen girebilirsiniz:';
+            }
+        }
+
+        aktifSunucuyuBulVeYonlendir();
+    </script>
+</body>
+</html>

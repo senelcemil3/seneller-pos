@@ -62,17 +62,37 @@
             <div class="col-lg-5 border-start">
                 <div class="row g-2 text-center">
                     <div class="col-6">
-                        <div class="p-2 border rounded bg-light">
-                            <span class="badge bg-warning text-dark mb-1">PATRON SABİT LİNK</span><br>
-                            <img src="{{ sabit_patron_qr }}" class="img-fluid rounded my-1" style="max-width:105px;">
-                            <div class="small text-truncate"><a href="{{ sabit_patron_url }}" target="_blank" class="fw-bold">{{ sabit_patron_url }}</a></div>
+                        <div class="p-2 border border-warning rounded bg-warning-subtle h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <span class="badge bg-warning text-dark mb-1">👑 PATRON SABİT LİNK</span><br>
+                                <img src="{{ sabit_patron_qr }}" class="img-fluid rounded border bg-white p-1 my-1" style="max-width:115px;">
+                                <div class="bg-white border rounded p-1 my-1 font-monospace fw-bold text-break" style="font-size:0.70rem;">{{ sabit_patron_url }}</div>
+                            </div>
+                            <div class="d-flex gap-1 mt-1">
+                                <button type="button" class="btn btn-sm btn-dark fw-bold flex-fill py-1" onclick="navigator.clipboard.writeText('{{ sabit_patron_url }}'); alert('Patron Sabit Linki kopyalandı!');">
+                                    <i class="bi bi-copy"></i> Kopyala
+                                </button>
+                                <a href="{{ sabit_patron_url }}" target="_blank" class="btn btn-sm btn-outline-dark fw-bold py-1">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="p-2 border rounded bg-light">
-                            <span class="badge bg-info text-dark mb-1">PERSONEL SABİT LİNK</span><br>
-                            <img src="{{ sabit_eleman_qr }}" class="img-fluid rounded my-1" style="max-width:105px;">
-                            <div class="small text-truncate"><a href="{{ sabit_eleman_url }}" target="_blank" class="fw-bold">{{ sabit_eleman_url }}</a></div>
+                        <div class="p-2 border border-primary rounded bg-primary-subtle h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <span class="badge bg-primary mb-1">🛠️ PERSONEL SABİT LİNK</span><br>
+                                <img src="{{ sabit_eleman_qr }}" class="img-fluid rounded border bg-white p-1 my-1" style="max-width:115px;">
+                                <div class="bg-white border rounded p-1 my-1 font-monospace fw-bold text-break" style="font-size:0.70rem;">{{ sabit_eleman_url }}</div>
+                            </div>
+                            <div class="d-flex gap-1 mt-1">
+                                <button type="button" class="btn btn-sm btn-primary fw-bold flex-fill py-1" onclick="navigator.clipboard.writeText('{{ sabit_eleman_url }}'); alert('Personel Sabit Linki kopyalandı!');">
+                                    <i class="bi bi-copy"></i> Kopyala
+                                </button>
+                                <a href="https://wa.me/?text={{ ('*Şeneller POS Personel Sabit Giriş Linki:* ' ~ sabit_eleman_url)|urlencode }}" target="_blank" class="btn btn-sm btn-success fw-bold py-1" title="WhatsApp'tan Gönder">
+                                    <i class="bi bi-whatsapp"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

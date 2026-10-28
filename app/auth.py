@@ -81,11 +81,30 @@ def load_logged_in_user():
 
 @auth_bp.route("/api/mobil-baglanti-qr")
 def api_mobil_baglanti_qr():
-    sabit = BAGLANTI_DURUMU.get("sabit_url") or "https://files.catbox.moe/eaalrw.html"
+    sabit = (BAGLANTI_DURUMU.get("sabit_url") or "https://senelcemil3.github.io/seneller-pos/").rstrip("/") + "/"
     sabit_patron = f"{sabit}?hesap=admin"
     sabit_eleman = f"{sabit}?hesap=eleman"
-    yerel = BAGLANTI_DURUMU.get("yerel_url") or "http://127.0.0.1:5000"
-    dis = BAGLANTI_DURUMU.get("dis_url")
+    yerel = (BAGLANTI_DURUMU.get("yerel_url") or "http://127.0.0.1:5000").rstrip("/")
+    dis = (BAGLANTI_DURUMU.get("dis_url") or "").rstrip("/")
+
+    # Eğer dis_url boşsa anlık ntfy veya aktif_adres.json'dan oku
+    if not dis:
+        ayar_dosyasi = os.path.join(BASE_DIR, "docs", "aktif_adres.json")
+        if os.path.exists(ayar_dosyasi):
+            try:
+                import json
+                with open(ayar_dosyasi, "r", encoding="utf-8") as af:
+                    dis = (json.load(af).get("dis_url") or "").rstrip("/")
+                    if dis:
+                        BAGLANTI_DURUMU["dis_url"] = dis
+            except Exception:
+                pass
+
+    dis_patron = f"{dis}/oto-giris?k=snl2026pos&hesap=admin" if dis else sabit_patron
+    dis_eleman = f"{dis}/oto-giris?k=snl2026pos&hesap=eleman" if dis else sabit_eleman
+    yerel_patron = f"{yerel}/oto-giris?k=snl2026pos&hesap=admin"
+    yerel_eleman = f"{yerel}/oto-giris?k=snl2026pos&hesap=eleman"
+
     return jsonify({
         "sabit_url": sabit,
         "sabit_patron_url": sabit_patron,
@@ -93,9 +112,13 @@ def api_mobil_baglanti_qr():
         "sabit_eleman_url": sabit_eleman,
         "sabit_eleman_qr": _qr_base64_uret(sabit_eleman),
         "yerel_url": yerel,
-        "yerel_qr": _qr_base64_uret(yerel),
+        "yerel_patron_url": yerel_patron,
+        "yerel_eleman_url": yerel_eleman,
+        "yerel_qr": _qr_base64_uret(yerel_patron),
         "dis_url": dis,
-        "dis_qr": _qr_base64_uret(dis) if dis else "",
+        "dis_patron_url": dis_patron,
+        "dis_eleman_url": dis_eleman,
+        "dis_qr": _qr_base64_uret(dis_patron) if dis else "",
     })
 
 
@@ -326,7 +349,7 @@ def bulut_yonetimi():
 
         return redirect(url_for("auth.bulut_yonetimi"))
 
-    sabit = BAGLANTI_DURUMU.get("sabit_url") or "https://files.catbox.moe/eaalrw.html"
+    sabit = (BAGLANTI_DURUMU.get("sabit_url") or "https://senelcemil3.github.io/seneller-pos/").rstrip("/") + "/"
     return render_template(
         "bulut.html",
         bulut_ayar=mevcut,

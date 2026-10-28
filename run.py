@@ -29,6 +29,87 @@ eski_port_islemlerini_temizle(5000)
 app = create_app()
 
 
+def _kapi_adresini_yayinla(hedef_url):
+    """Aktif dış ağ adresini hem ntfy kanalına hem de GitHub Pages (docs/aktif_adres.json) üzerine yazar."""
+    import json, base64, urllib.request
+    base_dir = os.path.dirname(__file__)
+    bulut_dosya = os.path.join(base_dir, "bulut_ayar.json")
+    if os.path.exists(bulut_dosya):
+        try:
+            with open(bulut_dosya, "r", encoding="utf-8") as bf:
+                b_data = json.load(bf)
+                if b_data.get("aktif_mod") == "bulut" and b_data.get("bulut_url"):
+                    hedef_url = b_data.get("bulut_url")
+        except Exception:
+            pass
+
+    BAGLANTI_DURUMU["dis_url"] = hedef_url
+
+    # 1. Yerel docs/aktif_adres.json dosyasını güncelle
+    docs_dir = os.path.join(base_dir, "docs")
+    os.makedirs(docs_dir, exist_ok=True)
+    aktif_json_yol = os.path.join(docs_dir, "aktif_adres.json")
+    icerik_str = json.dumps({
+        "dis_url": hedef_url,
+        "yerel_url": BAGLANTI_DURUMU.get("yerel_url", "http://192.168.1.104:5000"),
+        "guncelleme": time.strftime("%Y-%m-%d %H:%M:%S")
+    }, ensure_ascii=False, indent=2)
+    try:
+        with open(aktif_json_yol, "w", encoding="utf-8") as af:
+            af.write(icerik_str)
+    except Exception:
+        pass
+
+    # 2. ntfy.sh kanalına gönder
+    try:
+        import requests
+        requests.put("https://ntfy.sh/seneller_pos_kapi_88421", data=hedef_url.encode("utf-8"), timeout=5)
+    except Exception:
+        pass
+
+    # 3. GitHub Pages (senelcemil3.github.io/seneller-pos/aktif_adres.json) dosyasını API ile anında güncelle
+    try:
+        cred = subprocess.run(
+            ["git", "credential", "fill"],
+            input="protocol=https\nhost=github.com\n\n",
+            text=True,
+            capture_output=True,
+            timeout=4,
+        )
+        lines = dict(line.split("=", 1) for line in cred.stdout.splitlines() if "=" in line)
+        user = lines.get("username", "")
+        token = lines.get("password", "")
+        if user and token:
+            api_url = f"https://api.github.com/repos/{user}/seneller-pos/contents/docs/aktif_adres.json"
+            headers = {
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "SenellerPOS",
+            }
+            sha = None
+            try:
+                req_get = urllib.request.Request(api_url, headers=headers)
+                with urllib.request.urlopen(req_get, timeout=5) as r_get:
+                    sha = json.loads(r_get.read().decode("utf-8")).get("sha")
+            except Exception:
+                pass
+            payload = {
+                "message": "Otomatik canli sunucu adresi guncellemesi",
+                "content": base64.b64encode(icerik_str.encode("utf-8")).decode("ascii"),
+            }
+            if sha:
+                payload["sha"] = sha
+            req_put = urllib.request.Request(
+                api_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers,
+                method="PUT",
+            )
+            urllib.request.urlopen(req_put, timeout=6)
+    except Exception:
+        pass
+
+
 def get_local_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -85,44 +166,16 @@ def dis_ag_tuneli_baslat(port=5000):
                 m = url_pattern.search(line)
                 if m:
                     aday_url = m.group(1)
-                    BAGLANTI_DURUMU["dis_url"] = aday_url
-                    try:
-                        import json, requests
-                        bulut_dosya = os.path.join(os.path.dirname(__file__), "bulut_ayar.json")
-                        bulut_aktif_mi = False
-                        if os.path.exists(bulut_dosya):
-                            with open(bulut_dosya, "r", encoding="utf-8") as bf:
-                                b_data = json.load(bf)
-                                if b_data.get("aktif_mod") == "bulut" and b_data.get("bulut_url"):
-                                    bulut_aktif_mi = True
-                                    BAGLANTI_DURUMU["dis_url"] = b_data.get("bulut_url")
-                        if not bulut_aktif_mi:
-                            requests.put("https://ntfy.sh/seneller_pos_kapi_88421", data=aday_url.encode("utf-8"), timeout=5)
-                    except Exception:
-                        pass
+                    _kapi_adresini_yayinla(aday_url)
 
                 if ("Registered tunnel connection" in line or "Connection" in line) and aday_url and not baglanti_hazir:
                     baglanti_hazir = True
-                    try:
-                        import json, requests
-                        bulut_dosya = os.path.join(os.path.dirname(__file__), "bulut_ayar.json")
-                        bulut_aktif_mi = False
-                        if os.path.exists(bulut_dosya):
-                            with open(bulut_dosya, "r", encoding="utf-8") as bf:
-                                b_data = json.load(bf)
-                                if b_data.get("aktif_mod") == "bulut" and b_data.get("bulut_url"):
-                                    bulut_aktif_mi = True
-                                    BAGLANTI_DURUMU["dis_url"] = b_data.get("bulut_url")
-                        if not bulut_aktif_mi:
-                            BAGLANTI_DURUMU["dis_url"] = aday_url
-                            requests.put("https://ntfy.sh/seneller_pos_kapi_88421", data=aday_url.encode("utf-8"), timeout=5)
-                    except Exception:
-                        pass
+                    _kapi_adresini_yayinla(aday_url)
                     print("\n" + "=" * 70, flush=True)
-                    print("  [SABİT TELEFON ADRESİ EŞİTLENDİ - HİÇ DEĞİŞMEYEN LİNK AKTİF]", flush=True)
-                    print("  -> Patron Sabit Link  : https://files.catbox.moe/eaalrw.html?hesap=admin", flush=True)
-                    print("  -> Personel Sabit Link: https://files.catbox.moe/eaalrw.html?hesap=eleman", flush=True)
-                    print(f"  -> Aktif Tünel        : {aday_url}", flush=True)
+                    print("  [KURUMSAL SABİT TELEFON ADRESİ EŞİTLENDİ - HİÇ DEĞİŞMEYEN LİNK AKTİF]", flush=True)
+                    print("  -> Patron Sabit Link  : https://senelcemil3.github.io/seneller-pos/?hesap=admin", flush=True)
+                    print("  -> Personel Sabit Link: https://senelcemil3.github.io/seneller-pos/?hesap=eleman", flush=True)
+                    print(f"  -> Aktif Tünel        : {BAGLANTI_DURUMU.get('dis_url')}", flush=True)
                     print("=" * 70 + "\n", flush=True)
 
             proc.wait()

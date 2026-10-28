@@ -9,7 +9,7 @@ from app.extensions import db
 
 # Canlı bağlantı adreslerini (Sabit Kapı, Yerel Wi-Fi ve 4.5G Cloudflare HTTPS Tüneli) tutar
 BAGLANTI_DURUMU = {
-    "sabit_url": "https://files.catbox.moe/eaalrw.html",
+    "sabit_url": "https://senelcemil3.github.io/seneller-pos/",
     "yerel_url": "http://127.0.0.1:5000",
     "dis_url": None,
 }

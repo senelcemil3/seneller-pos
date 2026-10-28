@@ -272,47 +272,86 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
-                    <h6 class="modal-title"><i class="bi bi-phone-vibrate text-warning me-2"></i>Sabit (Hiç Değişmeyen) Telefon Bağlantısı & QR Kod</h6>
+                    <h6 class="modal-title"><i class="bi bi-phone-vibrate text-warning me-2"></i>Kurumsal Sabit Telefon Bağlantısı & QR Kod Merkezi</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-success py-2 small mb-3">
-                        <i class="bi bi-pin-angle-fill me-1"></i>
-                        <strong>SABİT ADRES SİSTEMİ AKTİF:</strong> Aşağıdaki QR kodları ve linkler <strong>hiçbir zaman değişmez!</strong> Bilgisayarı kapatıp açsanız bile telefonunuzdaki aynı kısayol/link her zaman otomatik olarak canlı sunucuyu bulur ve şifre sormadan doğrudan uygulamayı açar.
+                    <div class="alert alert-success py-2 small mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <i class="bi bi-shield-check me-1"></i>
+                            <strong>KURUMSAL SABİT KAPI AKTİF:</strong> Aşağıdaki linkler size özel GitHub adresinizdir ve <strong>hiçbir zaman değişmez</strong>.
+                        </div>
+                        <a href="{{ url_for('auth.bulut_yonetimi') }}" class="btn btn-xs btn-sm btn-outline-success fw-bold">
+                            <i class="bi bi-cloud-check me-1"></i>7/24 Bulut Ayarları
+                        </a>
                     </div>
+
                     <div class="row g-3">
-                        <!-- 1. SABİT PATRON GİRİŞİ (4.5G & Her Yerden) -->
+                        <!-- 1. SABİT PATRON GİRİŞİ -->
                         <div class="col-12 col-md-6">
-                            <div class="border border-warning rounded-3 p-3 h-100 bg-warning-subtle text-center">
-                                <span class="badge bg-warning text-dark mb-1">👑 PATRON SABİT TELEFON LİNKİ (DEĞİŞMEZ)</span>
-                                <h6 class="fw-bold mb-1">Patron Otomatik Giriş QR</h6>
-                                <p class="small text-muted mb-2">Kendi telefonunuzdan bir kez okutup <strong>"Ana Ekrana Ekle"</strong> yapın. Her tıkladığınızda doğrudan Patron hesabıyla açılır.</p>
-                                <div id="sabitPatronQrAlani" class="my-2"></div>
-                                <div class="input-group input-group-sm mt-2">
-                                    <input type="text" id="sabitPatronUrlInput" class="form-control font-monospace fw-bold text-center" readonly>
-                                    <button class="btn btn-dark fw-bold" type="button" onclick="navigator.clipboard.writeText(document.getElementById('sabitPatronUrlInput').value); alert('Sabit Patron Linki kopyalandı!');">
-                                        <i class="bi bi-copy"></i>
-                                    </button>
+                            <div class="border border-warning border-2 rounded-3 p-3 h-100 bg-warning-subtle text-center d-flex flex-column justify-content-between">
+                                <div>
+                                    <span class="badge bg-warning text-dark mb-1">👑 PATRON KURUMSAL SABİT LİNK</span>
+                                    <h6 class="fw-bold mb-1">Yönetici Otomatik Giriş QR</h6>
+                                    <p class="small text-muted mb-2">Kendi telefonunuzdan okutup <strong>"Ana Ekrana Ekle"</strong> yapın. Şifre sormadan doğrudan Patron hesabıyla açılır.</p>
+                                    <div id="sabitPatronQrAlani" class="my-2"></div>
+                                </div>
+                                <div>
+                                    <div class="bg-white border rounded p-2 mb-2 small font-monospace fw-bold text-break" id="sabitPatronUrlMetin" style="font-size: 0.78rem;"></div>
+                                    <input type="hidden" id="sabitPatronUrlInput">
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-dark fw-bold flex-fill" type="button" onclick="navigator.clipboard.writeText(document.getElementById('sabitPatronUrlInput').value); alert('Patron Sabit Linki kopyalandı!');">
+                                            <i class="bi bi-copy me-1"></i>Kopyala
+                                        </button>
+                                        <a id="patronWhatsappBtn" href="#" target="_blank" class="btn btn-sm btn-success fw-bold flex-fill">
+                                            <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                                        </a>
+                                        <a id="patronAcBtn" href="#" target="_blank" class="btn btn-sm btn-outline-dark fw-bold">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 2. SABİT SAHA PERSONELİ GİRİŞİ (4.5G & Her Yerden) -->
+                        <!-- 2. SABİT SAHA PERSONELİ GİRİŞİ -->
                         <div class="col-12 col-md-6">
-                            <div class="border border-primary rounded-3 p-3 h-100 bg-primary-subtle text-center">
-                                <span class="badge bg-primary mb-1">🛠️ PERSONEL SABİT TELEFON LİNKİ (DEĞİŞMEZ)</span>
-                                <h6 class="fw-bold mb-1">Saha Elemanı Otomatik Giriş QR</h6>
-                                <p class="small text-muted mb-2">Elemanların telefonuna bu sabit linki gönderin. Bilgisayar kapanıp açılsa bile link hiç değişmez.</p>
-                                <div id="sabitElemanQrAlani" class="my-2"></div>
-                                <div class="input-group input-group-sm mt-2">
-                                    <input type="text" id="sabitElemanUrlInput" class="form-control font-monospace fw-bold text-center" readonly>
-                                    <button class="btn btn-primary fw-bold" type="button" onclick="navigator.clipboard.writeText(document.getElementById('sabitElemanUrlInput').value); alert('Sabit Personel Linki kopyalandı!');">
-                                        <i class="bi bi-copy"></i>
-                                    </button>
+                            <div class="border border-primary border-2 rounded-3 p-3 h-100 bg-primary-subtle text-center d-flex flex-column justify-content-between">
+                                <div>
+                                    <span class="badge bg-primary mb-1">🛠️ PERSONEL KURUMSAL SABİT LİNK</span>
+                                    <h6 class="fw-bold mb-1">Saha Elemanı Otomatik Giriş QR</h6>
+                                    <p class="small text-muted mb-2">Sahadaki elemanların telefonuna gönderin. Bilgisayar kapanıp açılsa bile link hiç değişmez.</p>
+                                    <div id="sabitElemanQrAlani" class="my-2"></div>
                                 </div>
-                                <a id="disWhatsappBtn" href="#" target="_blank" class="btn btn-sm btn-success w-100 mt-2 fw-bold">
-                                    <i class="bi bi-whatsapp me-1"></i> Sabit Personel Linkini WhatsApp'tan Gönder
-                                </a>
+                                <div>
+                                    <div class="bg-white border rounded p-2 mb-2 small font-monospace fw-bold text-break" id="sabitElemanUrlMetin" style="font-size: 0.78rem;"></div>
+                                    <input type="hidden" id="sabitElemanUrlInput">
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-primary fw-bold flex-fill" type="button" onclick="navigator.clipboard.writeText(document.getElementById('sabitElemanUrlInput').value); alert('Personel Sabit Linki kopyalandı!');">
+                                            <i class="bi bi-copy me-1"></i>Kopyala
+                                        </button>
+                                        <a id="disWhatsappBtn" href="#" target="_blank" class="btn btn-sm btn-success fw-bold flex-fill">
+                                            <i class="bi bi-whatsapp me-1"></i>WhatsApp'tan Gönder
+                                        </a>
+                                        <a id="elemanAcBtn" href="#" target="_blank" class="btn btn-sm btn-outline-primary fw-bold">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canlı Sunucu & Doğrudan Erişim Bilgisi -->
+                    <div class="mt-3 p-2 rounded border bg-light small">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-6">
+                                <span class="text-muted fw-bold"><i class="bi bi-globe2 text-success me-1"></i>Aktif 4.5G / Bulut Tüneli:</span>
+                                <a id="canliDisUrlLink" href="#" target="_blank" class="fw-bold text-decoration-none d-block text-truncate">Yükleniyor...</a>
+                            </div>
+                            <div class="col-md-6 border-start-md">
+                                <span class="text-muted fw-bold"><i class="bi bi-wifi text-primary me-1"></i>Dükkân İçi Wi-Fi Adresi:</span>
+                                <a id="canliYerelUrlLink" href="#" target="_blank" class="fw-bold text-decoration-none d-block text-truncate">Yükleniyor...</a>
                             </div>
                         </div>
                     </div>
@@ -349,14 +388,36 @@
             new bootstrap.Modal(document.getElementById('mobilBaglantiModal')).show();
             const res = await fetch('/api/mobil-baglanti-qr');
             const d = await res.json();
+
             document.getElementById('sabitPatronUrlInput').value = d.sabit_patron_url || '';
-            document.getElementById('sabitPatronQrAlani').innerHTML = d.sabit_patron_qr ? `<img src="${d.sabit_patron_qr}" class="img-fluid rounded border p-1 bg-white" style="max-height:175px;">` : '';
+            document.getElementById('sabitPatronUrlMetin').textContent = d.sabit_patron_url || '';
+            document.getElementById('patronAcBtn').href = d.sabit_patron_url || '#';
+            document.getElementById('sabitPatronQrAlani').innerHTML = d.sabit_patron_qr ? `<img src="${d.sabit_patron_qr}" class="img-fluid rounded border p-1 bg-white" style="max-height:165px;">` : '';
 
             document.getElementById('sabitElemanUrlInput').value = d.sabit_eleman_url || '';
-            document.getElementById('sabitElemanQrAlani').innerHTML = d.sabit_eleman_qr ? `<img src="${d.sabit_eleman_qr}" class="img-fluid rounded border p-1 bg-white" style="max-height:175px;">` : '';
+            document.getElementById('sabitElemanUrlMetin').textContent = d.sabit_eleman_url || '';
+            document.getElementById('elemanAcBtn').href = d.sabit_eleman_url || '#';
+            document.getElementById('sabitElemanQrAlani').innerHTML = d.sabit_eleman_qr ? `<img src="${d.sabit_eleman_qr}" class="img-fluid rounded border p-1 bg-white" style="max-height:165px;">` : '';
 
-            const msg = encodeURIComponent(`*Şeneller POS Sabit Telefon Giriş Linkiniz (Hiç Değişmez):*\n${d.sabit_eleman_url}\n(Bu linki telefonunuzda 'Ana Ekrana Ekle' yapın, her zaman doğrudan açılır)`);
-            document.getElementById('disWhatsappBtn').href = `https://wa.me/?text=${msg}`;
+            const msgPatron = encodeURIComponent(`*Şeneller POS Patron Sabit Giriş Linki:*\n${d.sabit_patron_url}`);
+            document.getElementById('patronWhatsappBtn').href = `https://wa.me/?text=${msgPatron}`;
+
+            const msgEleman = encodeURIComponent(`*Şeneller POS Saha Personeli Sabit Giriş Linkiniz (Hiç Değişmez):*\n${d.sabit_eleman_url}\n(Bu linki telefonunuzda 'Ana Ekrana Ekle' yapın, her zaman doğrudan açılır)`);
+            document.getElementById('disWhatsappBtn').href = `https://wa.me/?text=${msgEleman}`;
+
+            const disEl = document.getElementById('canliDisUrlLink');
+            if (d.dis_url) {
+                disEl.textContent = d.dis_url;
+                disEl.href = d.dis_patron_url || d.dis_url;
+            } else {
+                disEl.textContent = 'Hazırlanıyor...';
+            }
+
+            const yerelEl = document.getElementById('canliYerelUrlLink');
+            if (d.yerel_url) {
+                yerelEl.textContent = d.yerel_url;
+                yerelEl.href = d.yerel_patron_url || d.yerel_url;
+            }
         }
     </script>
     {% block extra_scripts %}{% endblock %}
