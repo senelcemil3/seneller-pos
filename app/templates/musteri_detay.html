@@ -21,6 +21,9 @@
         <button class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#tahsilatModal">
             <i class="bi bi-cash-coin me-1"></i> Tahsilat Al
         </button>
+        <button class="btn btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#musteriDuzenleModal">
+            <i class="bi bi-pencil-square me-1"></i> Bilgileri Düzenle
+        </button>
         <button class="btn btn-outline-success fw-bold" onclick="whatsappCariGonder()">
             <i class="bi bi-whatsapp me-1"></i> WhatsApp Özet Gönder
         </button>
@@ -119,30 +122,66 @@
 {% if tahsilatlar %}
 <div class="card card-snl p-3 mt-3">
     <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success me-1"></i> Ödeme / Tahsilat Geçmişi</h6>
-    <table class="table table-sm small mb-0">
-        <thead>
-            <tr>
-                <th>Tarih</th>
-                <th>Ödeme Yöntemi</th>
-                <th>Açıklama</th>
-                <th>Alan Personel</th>
-                <th class="text-end">Tutar</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in tahsilatlar %}
-            <tr>
-                <td>{{ t.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
-                <td><span class="badge bg-success">{{ t.odeme_yontemi|upper }}</span></td>
-                <td>{{ t.aciklama }}</td>
-                <td>{{ t.kullanici.ad_soyad if t.kullanici else '-' }}</td>
-                <td class="text-end fw-bold text-success">{{ t.tutar|para }} ₺</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-sm small mb-0">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Ödeme Yöntemi</th>
+                    <th>Açıklama</th>
+                    <th>Alan Personel</th>
+                    <th class="text-end">Tutar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tahsilatlar %}
+                <tr>
+                    <td class="text-nowrap">{{ t.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td><span class="badge bg-success">{{ t.odeme_yontemi|upper }}</span></td>
+                    <td>{{ t.aciklama }}</td>
+                    <td>{{ t.kullanici.ad_soyad if t.kullanici else '-' }}</td>
+                    <td class="text-end fw-bold text-success">{{ t.tutar|para }} ₺</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
+
+<!-- Müşteri Bilgileri Düzenle Modal -->
+<div class="modal fade" id="musteriDuzenleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <input type="hidden" name="form_islem" value="duzenle">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title"><i class="bi bi-pencil-square me-1"></i> Müşteri / Montaj Carisi Düzenle</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ad Soyad / Firma Adı *</label>
+                    <input type="text" name="ad_soyad" value="{{ musteri.ad_soyad }}" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Telefon</label>
+                    <input type="text" name="telefon" value="{{ musteri.telefon or '' }}" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Montaj Adresi / Konum</label>
+                    <input type="text" name="adres" value="{{ musteri.adres or '' }}" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Notlar</label>
+                    <textarea name="notlar" class="form-control" rows="2">{{ musteri.notlar or '' }}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary fw-bold w-100">Değişiklikleri Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Tahsilat Al Modal -->
 <div class="modal fade" id="tahsilatModal" tabindex="-1">

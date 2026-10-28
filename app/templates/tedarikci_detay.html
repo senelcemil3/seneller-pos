@@ -8,7 +8,7 @@
         <h4 class="fw-bold mb-0">{{ tedarikci.firma_adi }}</h4>
         <div class="text-muted small">{{ tedarikci.yetkili or '' }} • {{ tedarikci.telefon or '' }}</div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
         <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#alisFaturasiModal">
             <i class="bi bi-box-arrow-in-down me-1"></i> Mal Alımı / Alış Faturası Gir
         </button>
@@ -27,60 +27,64 @@
     <div class="col-12 col-lg-7">
         <div class="card card-snl p-3">
             <h6 class="fw-bold mb-2">Alış Faturaları (Giren Ürünler)</h6>
-            <table class="table table-sm small mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Fiş No</th>
-                        <th>Tarih</th>
-                        <th>Alınan Ürünler</th>
-                        <th class="text-end">Toplam</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i in islemler %}
-                    <tr>
-                        <td class="font-monospace"><a href="{{ url_for('main.islem_detay', id=i.id) }}">{{ i.fis_no }}</a></td>
-                        <td>{{ i.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
-                        <td>
-                            {% for k in i.kalemler %}
-                                <div>+{{ k.miktar|miktar_fmt }} {{ k.birim }} <strong>{{ k.urun_adi }}</strong> ({{ k.birim_fiyat|para }} ₺)</div>
-                            {% endfor %}
-                        </td>
-                        <td class="text-end fw-bold">{{ i.genel_toplam|para }} ₺</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="4" class="text-center text-muted py-3">Henüz alış faturası girilmedi.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-sm small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fiş No</th>
+                            <th>Tarih</th>
+                            <th>Alınan Ürünler</th>
+                            <th class="text-end">Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in islemler %}
+                        <tr>
+                            <td class="font-monospace"><a href="{{ url_for('main.islem_detay', id=i.id) }}">{{ i.fis_no }}</a></td>
+                            <td class="text-nowrap">{{ i.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                {% for k in i.kalemler %}
+                                    <div>+{{ k.miktar|miktar_fmt }} {{ k.birim }} <strong>{{ k.urun_adi }}</strong> ({{ k.birim_fiyat|para }} ₺)</div>
+                                {% endfor %}
+                            </td>
+                            <td class="text-end fw-bold">{{ i.genel_toplam|para }} ₺</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">Henüz alış faturası girilmedi.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <div class="col-12 col-lg-5">
         <div class="card card-snl p-3">
             <h6 class="fw-bold mb-2">Yapılan Ödemeler</h6>
-            <table class="table table-sm small mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Tarih</th>
-                        <th>Yöntem</th>
-                        <th>Açıklama</th>
-                        <th class="text-end">Tutar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for o in odemeler %}
-                    <tr>
-                        <td>{{ o.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
-                        <td><span class="badge bg-secondary">{{ o.odeme_yontemi|upper }}</span></td>
-                        <td>{{ o.aciklama }}</td>
-                        <td class="text-end fw-bold">{{ o.tutar|para }} ₺</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="4" class="text-center text-muted py-3">Ödeme kaydı yok.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-sm small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Yöntem</th>
+                            <th>Açıklama</th>
+                            <th class="text-end">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in odemeler %}
+                        <tr>
+                            <td class="text-nowrap">{{ o.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td><span class="badge bg-secondary">{{ o.odeme_yontemi|upper }}</span></td>
+                            <td>{{ o.aciklama }}</td>
+                            <td class="text-end fw-bold">{{ o.tutar|para }} ₺</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">Ödeme kaydı yok.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

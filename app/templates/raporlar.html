@@ -32,33 +32,37 @@
 <!-- Özet Finans Kartları -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
-        <div class="card card-snl p-3 border-start border-4 border-primary">
+        <div class="card card-snl p-3 border-start border-4 border-primary h-100">
             <div class="small text-muted fw-bold">TOPLAM CİRO (SATIŞ + MONTAJ)</div>
             <div class="fs-4 fw-bold text-primary">{{ toplam_ciro|para }} ₺</div>
             <div class="small text-muted">POS: {{ satis_ciro|para }} ₺ • Montaj: {{ montaj_ciro|para }} ₺</div>
         </div>
     </div>
+    {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
     <div class="col-6 col-lg-3">
-        <div class="card card-snl p-3 border-start border-4 border-secondary">
+        <div class="card card-snl p-3 border-start border-4 border-secondary h-100">
             <div class="small text-muted fw-bold">SATILAN ÜRÜN MALİYETİ</div>
             <div class="fs-4 fw-bold text-secondary">{{ toplam_maliyet|para }} ₺</div>
             <div class="small text-muted">Brüt Kâr: <strong>{{ brut_kar|para }} ₺</strong></div>
         </div>
     </div>
+    {% endif %}
     <div class="col-6 col-lg-3">
-        <div class="card card-snl p-3 border-start border-4 border-danger">
+        <div class="card card-snl p-3 border-start border-4 border-danger h-100">
             <div class="small text-muted fw-bold">TOPLAM GİDER & ÖDEMELER</div>
             <div class="fs-4 fw-bold text-danger">{{ toplam_gider|para }} ₺</div>
             <div class="small text-muted">Kasa Tahsilat: {{ toplam_tahsilat|para }} ₺</div>
         </div>
     </div>
+    {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
     <div class="col-6 col-lg-3">
-        <div class="card card-snl p-3 border-start border-4 border-success">
+        <div class="card card-snl p-3 border-start border-4 border-success h-100">
             <div class="small text-muted fw-bold">NET KAZANÇ (KÂR)</div>
             <div class="fs-4 fw-bold text-success">{{ net_kar|para }} ₺</div>
             <div class="small text-muted">Masraflar düşüldükten sonra</div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <div class="row g-3">
@@ -66,30 +70,36 @@
     <div class="col-12 col-lg-6">
         <div class="card card-snl p-3 h-100">
             <h6 class="fw-bold mb-3"><i class="bi bi-people-fill text-primary me-1"></i> Personel Bazlı Satış & Montaj Performansı</h6>
-            <table class="table table-sm table-hover align-middle small mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Personel</th>
-                        <th class="text-center">POS Satış</th>
-                        <th class="text-center">Saha Montaj</th>
-                        <th class="text-end">Toplam Ciro</th>
-                        <th class="text-end">Net Kâr</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p_ad, d in personel_ozet.items() %}
-                    <tr>
-                        <td class="fw-bold">{{ p_ad }}</td>
-                        <td class="text-center"><span class="badge bg-primary">{{ d.satis_adet }}</span></td>
-                        <td class="text-center"><span class="badge bg-warning text-dark">{{ d.montaj_adet }}</span></td>
-                        <td class="text-end fw-bold">{{ d.ciro|para }} ₺</td>
-                        <td class="text-end text-success fw-bold">{{ d.kar|para }} ₺</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-3">Bu tarih aralığında işlem yok.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Personel</th>
+                            <th class="text-center">POS Satış</th>
+                            <th class="text-center">Saha Montaj</th>
+                            <th class="text-end">Toplam Ciro</th>
+                            {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+                            <th class="text-end">Net Kâr</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p_ad, d in personel_ozet.items() %}
+                        <tr>
+                            <td class="fw-bold">{{ p_ad }}</td>
+                            <td class="text-center"><span class="badge bg-primary">{{ d.satis_adet }}</span></td>
+                            <td class="text-center"><span class="badge bg-warning text-dark">{{ d.montaj_adet }}</span></td>
+                            <td class="text-end fw-bold">{{ d.ciro|para }} ₺</td>
+                            {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+                            <td class="text-end text-success fw-bold">{{ d.kar|para }} ₺</td>
+                            {% endif %}
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">Bu tarih aralığında işlem yok.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -97,26 +107,28 @@
     <div class="col-12 col-lg-6">
         <div class="card card-snl p-3 h-100">
             <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-warning me-1"></i> En Çok Satılan / Montajda Kullanılan Ürünler</h6>
-            <table class="table table-sm table-hover align-middle small mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Ürün / Malzeme</th>
-                        <th class="text-center">Toplam Miktar</th>
-                        <th class="text-end">Ciro Katkısı</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in urun_performans %}
-                    <tr>
-                        <td class="fw-semibold">{{ u.urun_adi }}</td>
-                        <td class="text-center fw-bold">{{ u.toplam_miktar|miktar_fmt }} {{ u.birim }}</td>
-                        <td class="text-end fw-bold">{{ u.toplam_tutar|para }} ₺</td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="3" class="text-center text-muted py-3">Kayıt yok.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ürün / Malzeme</th>
+                            <th class="text-center">Toplam Miktar</th>
+                            <th class="text-end">Ciro Katkısı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in urun_performans %}
+                        <tr>
+                            <td class="fw-semibold">{{ u.urun_adi }}</td>
+                            <td class="text-center fw-bold">{{ u.toplam_miktar|miktar_fmt }} {{ u.birim }}</td>
+                            <td class="text-end fw-bold">{{ u.toplam_tutar|para }} ₺</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center text-muted py-3">Kayıt yok.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

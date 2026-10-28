@@ -4,8 +4,8 @@
 {% block content %}
 <div class="row g-3 justify-content-center">
     <div class="col-12 col-lg-8">
-        <div class="card card-snl p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="card card-snl p-3 p-md-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <h4 class="fw-bold mb-0"><i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Excel ile Toplu Ürün Yükle & İndir</h4>
                 <a href="{{ url_for('stok.excel_indir') }}" class="btn btn-outline-success fw-bold">
                     <i class="bi bi-download me-1"></i> Mevcut Stokları Excel İndir
@@ -42,7 +42,7 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                         <h6 class="fw-bold text-primary mb-1"><i class="bi bi-lightning-fill me-1"></i> Hazır Dosya Tespit Edildi: <code>stok2 .xlsx</code></h6>
-                        <div class="small text-muted">{{ varsayilan_excel_yolu }}</div>
+                        <div class="small text-muted text-break">{{ varsayilan_excel_yolu }}</div>
                     </div>
                     <button type="submit" class="btn btn-primary fw-bold">
                         <i class="bi bi-magic me-1"></i> stok2.xlsx Dosyasını Tek Tıkla Aktar

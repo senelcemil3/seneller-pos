@@ -4,31 +4,31 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
-        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
             <a href="{{ url_for('main.islemler_listesi') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i> Listeye Dön
             </a>
             <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-success fw-bold" onclick="whatsappFisGonder()">
+                <button class="btn btn-success btn-sm fw-bold" onclick="whatsappFisGonder()">
                     <i class="bi bi-whatsapp me-1"></i> WhatsApp'tan Gönder
                 </button>
-                <button class="btn btn-primary fw-bold" onclick="window.print()">
+                <button class="btn btn-primary btn-sm fw-bold" onclick="window.print()">
                     <i class="bi bi-printer-fill me-1"></i> Fiş / Fatura Yazdır
                 </button>
-                <a href="{{ url_for('main.pos_ekrani') }}" class="btn btn-outline-dark fw-bold">
+                <a href="{{ url_for('main.pos_ekrani') }}" class="btn btn-outline-dark btn-sm fw-bold">
                     <i class="bi bi-plus-circle me-1"></i> Yeni İşlem
                 </a>
                 {% if g.user.is_patron or g.user.yetki_urun_sil %}
-                <form method="POST" action="{{ url_for('main.islem_sil', id=islem.id) }}" onsubmit="return confirm('Bu fişi iptal etmek istediğinize emin misiniz? Stoklar ve bakiye geri alınacaktır.');">
-                    <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> İptal Et</button>
+                <form method="POST" action="{{ url_for('main.islem_sil', id=islem.id) }}" class="m-0" onsubmit="return confirm('Bu fişi iptal etmek istediğinize emin misiniz? Stoklar ve bakiye geri alınacaktır.');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> İptal Et</button>
                 </form>
                 {% endif %}
             </div>
         </div>
 
-        <div class="card card-snl p-4">
+        <div class="card card-snl p-3 p-md-4">
             <!-- Başlık -->
-            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 border-bottom pb-3 mb-3">
                 <div>
                     <h4 class="fw-bold mb-1">{{ g.ayarlar.sirket_adi }}</h4>
                     <div class="small text-muted">{{ g.ayarlar.alt_baslik }}</div>
@@ -70,32 +70,34 @@
             </div>
 
             <!-- Kalemler Tablosu -->
-            <table class="table table-bordered align-middle small mb-3">
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Barkod</th>
-                        <th>Ürün / Malzeme / Hizmet</th>
-                        <th>Marka / Model</th>
-                        <th class="text-center">Miktar</th>
-                        <th class="text-end">Birim Fiyat</th>
-                        <th class="text-end">Tutar</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for k in islem.kalemler %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td class="font-monospace">{{ k.barkod or '-' }}</td>
-                        <td class="fw-semibold">{{ k.urun_adi }}</td>
-                        <td>{{ k.marka_model or '-' }}</td>
-                        <td class="text-center fw-bold">{{ k.miktar|miktar_fmt }} {{ k.birim }}</td>
-                        <td class="text-end">{{ k.birim_fiyat|para }} ₺</td>
-                        <td class="text-end fw-bold">{{ k.toplam_tutar|para }} ₺</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Barkod</th>
+                            <th>Ürün / Malzeme / Hizmet</th>
+                            <th>Marka / Model</th>
+                            <th class="text-center">Miktar</th>
+                            <th class="text-end">Birim Fiyat</th>
+                            <th class="text-end">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in islem.kalemler %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td class="font-monospace">{{ k.barkod or '-' }}</td>
+                            <td class="fw-semibold">{{ k.urun_adi }}</td>
+                            <td>{{ k.marka_model or '-' }}</td>
+                            <td class="text-center fw-bold">{{ k.miktar|miktar_fmt }} {{ k.birim }}</td>
+                            <td class="text-end">{{ k.birim_fiyat|para }} ₺</td>
+                            <td class="text-end fw-bold">{{ k.toplam_tutar|para }} ₺</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
             <!-- Toplamlar -->
             <div class="row justify-content-end">

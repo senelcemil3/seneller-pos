@@ -12,6 +12,8 @@
         background: #fff;
         transition: all 0.12s;
         user-select: none;
+        overflow: hidden;
+        word-break: break-word;
     }
     .urun-kutu:hover {
         border-color: #2563eb;
@@ -39,20 +41,20 @@
 {% block content %}
 <!-- Üst Mod Seçimi & Çoklu Sepet Sekmeleri (BenimPOS Tarzı) -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div class="btn-group shadow-sm" role="group">
-        <button type="button" id="btnModSatis" class="btn btn-lg fw-bold {% if islem_modu != 'montaj' %}btn-primary{% else %}btn-outline-primary bg-white{% endif %}" onclick="modDegistir('satis')">
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" id="btnModSatis" class="btn fw-bold shadow-sm {% if islem_modu != 'montaj' %}btn-primary{% else %}btn-outline-primary bg-white{% endif %}" onclick="modDegistir('satis')">
             <i class="bi bi-upc-scan me-1"></i> Tezgâh Hızlı Satış (POS)
         </button>
-        <button type="button" id="btnModMontaj" class="btn btn-lg fw-bold {% if islem_modu == 'montaj' %}btn-warning text-dark{% else %}btn-outline-warning bg-white text-dark{% endif %}" onclick="modDegistir('montaj')">
+        <button type="button" id="btnModMontaj" class="btn fw-bold shadow-sm {% if islem_modu == 'montaj' %}btn-warning text-dark{% else %}btn-outline-warning bg-white text-dark{% endif %}" onclick="modDegistir('montaj')">
             <i class="bi bi-tools me-1"></i> Saha Montaj / Servis Kaydı
         </button>
-        <a href="{{ url_for('ai.ai_pdf_ekrani') }}" class="btn btn-lg btn-dark fw-bold">
+        <a href="{{ url_for('ai.ai_pdf_ekrani') }}" class="btn btn-dark fw-bold shadow-sm">
             <i class="bi bi-stars text-warning me-1"></i> PDF'den Forma Çevir (AI)
         </a>
     </div>
 
     <!-- Bekleyen Sepet Sekmeleri (Fiş 1..4) -->
-    <div class="d-flex align-items-center gap-1 bg-white p-1 rounded-3 shadow-sm border">
+    <div class="d-flex flex-wrap align-items-center gap-1 bg-white p-1 rounded-3 shadow-sm border">
         <span class="small text-muted px-2 fw-semibold d-none d-sm-inline">Sepetler:</span>
         {% for idx in range(1, 5) %}
         <button type="button" class="btn btn-sm btn-light fis-tab-btn {% if idx == 1 %}active{% endif %}" id="fisTab{{ idx }}" onclick="sepetSekmesiDegistir({{ idx }})">
@@ -366,14 +368,14 @@
         const etiket = document.getElementById("modBaslikEtiketi");
 
         if (yeniMod === "montaj") {
-            btnMontaj.className = "btn btn-lg fw-bold btn-warning text-dark";
-            btnSatis.className = "btn btn-lg fw-bold btn-outline-primary bg-white";
+            btnMontaj.className = "btn fw-bold shadow-sm btn-warning text-dark";
+            btnSatis.className = "btn fw-bold shadow-sm btn-outline-primary bg-white";
             banner.className = "rounded-3 p-3 mb-3 mod-banner-montaj";
             ekAlanlar.classList.remove("d-none");
             etiket.innerHTML = '<i class="bi bi-tools me-1"></i> Montaj Müşterisi & Kurulum Yeri';
         } else {
-            btnSatis.className = "btn btn-lg fw-bold btn-primary";
-            btnMontaj.className = "btn btn-lg fw-bold btn-outline-warning bg-white text-dark";
+            btnSatis.className = "btn fw-bold shadow-sm btn-primary";
+            btnMontaj.className = "btn fw-bold shadow-sm btn-outline-warning bg-white text-dark";
             banner.className = "rounded-3 p-3 mb-3 mod-banner-satis";
             ekAlanlar.classList.add("d-none");
             etiket.innerHTML = '<i class="bi bi-person-lines-fill me-1"></i> Müşteri (Cari) Seçimi';
@@ -695,6 +697,25 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+        try {
+            const aiMetaRaw = localStorage.getItem("seneller_pos_ai_meta");
+            if (aiMetaRaw) {
+                const aiMeta = JSON.parse(aiMetaRaw);
+                localStorage.removeItem("seneller_pos_ai_meta");
+                if (aiMeta.musteri_id) {
+                    document.getElementById("musteriSecim").value = String(aiMeta.musteri_id);
+                } else if (aiMeta.musteri_adi) {
+                    document.getElementById("yeniMusteriKutu").classList.remove("d-none");
+                    document.getElementById("ymAdSoyad").value = aiMeta.musteri_adi;
+                }
+                if (aiMeta.montaj_basligi) {
+                    document.getElementById("montajBasligi").value = aiMeta.montaj_basligi;
+                }
+                if (aiMeta.montaj_adresi) {
+                    document.getElementById("montajAdresi").value = aiMeta.montaj_adresi;
+                }
+            }
+        } catch (e) {}
         musteriSecildi();
         sepetiCiz();
         urunleriGetir();

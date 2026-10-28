@@ -24,7 +24,7 @@
 
 <!-- Sabit Telefon Kapısını 7/24 Bulut Sunucuya Bağlama Kartı -->
 <div class="card card-snl border-success border-2 mb-4 shadow-sm">
-    <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+    <div class="card-header bg-success text-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span><i class="bi bi-link-45deg me-1"></i>ADIM 2: Sabit Telefon Linklerinizi 7/24 Bulut Sunucunuza Sabitleyin</span>
         <span class="badge bg-light text-success">Bilgisayar Kapalıyken Çalışır</span>
     </div>
@@ -106,7 +106,7 @@
     <!-- SEÇENEK 1: RENDER.COM (TEK TIKLA OTOMATİK KURULUM) -->
     <div class="col-lg-6">
         <div class="card card-snl h-100 border-primary border-2">
-            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+            <div class="card-header bg-primary text-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span><i class="bi bi-rocket-takeoff-fill me-1"></i>Seçenek 1: Render.com (Tek Tıkla Otomatik Kurulum)</span>
                 <span class="badge bg-warning text-dark">En Kolay • 2 Dakika</span>
             </div>
@@ -146,7 +146,7 @@
     <!-- SEÇENEK 2: PYTHONANYWHERE (HİÇ UYKUYA GİRMEYEN 7/24 SUNUCU) -->
     <div class="col-lg-6">
         <div class="card card-snl h-100 border-dark border-2">
-            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+            <div class="card-header bg-dark text-white fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span><i class="bi bi-hdd-network-fill text-warning me-1"></i>Seçenek 2: PythonAnywhere (7/24 Kesintisiz & Kalıcı Disk)</span>
                 <span class="badge bg-success">Kalıcı Veritabanı • Uyku Yok</span>
             </div>
@@ -174,7 +174,7 @@
                         </li>
                         <li class="mb-1">
                             Üst menüden <strong>Web &rarr; Add a new web app &rarr; Manual Configuration (Python 3.10+)</strong> seçin. <strong>WSGI configuration file</strong> içine şu 3 satırı yazıp yeşil <strong>Reload</strong> butonuna basın:
-                            <pre class="bg-light p-2 rounded border small mt-1 mb-0">import sys
+                            <pre class="bg-light p-2 rounded border small mt-1 mb-0" style="white-space: pre-wrap; word-break: break-word;">import sys
 sys.path.insert(0, '/home/KULLANICI_ADINIZ/seneller-pos')
 from wsgi import application</pre>
                         </li>

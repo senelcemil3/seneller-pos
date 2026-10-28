@@ -21,14 +21,22 @@
             --snl-success: #10b981;
             --snl-danger: #ef4444;
         }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         body {
             background-color: #f1f5f9;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: #1e293b;
-            padding-bottom: 70px;
+            padding-bottom: 74px;
+        }
+        img, svg, video, canvas {
+            max-width: 100%;
+            height: auto;
         }
         @media (min-width: 992px) {
-            body { padding-bottom: 0; }
+            body { padding-bottom: 24px; }
         }
         .snl-navbar {
             background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
@@ -36,31 +44,37 @@
         }
         .snl-brand {
             font-weight: 800;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.3px;
             color: #fff !important;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            white-space: nowrap;
+            font-size: 1.05rem;
         }
         .snl-brand-badge {
             background: var(--snl-accent);
             color: #0f172a;
             font-weight: 900;
-            padding: 4px 9px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            padding: 3px 8px;
+            border-radius: 7px;
+            font-size: 0.82rem;
         }
         .nav-link-snl {
             color: #cbd5e1 !important;
             font-weight: 600;
-            padding: 8px 13px !important;
+            padding: 6px 10px !important;
             border-radius: 8px;
             transition: all 0.15s;
-            font-size: 0.92rem;
+            font-size: 0.84rem;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         .nav-link-snl:hover, .nav-link-snl.active {
             color: #fff !important;
-            background: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.14);
         }
         .nav-link-pos {
             background: var(--snl-primary) !important;
@@ -70,11 +84,31 @@
             background: #d97706 !important;
             color: #fff !important;
         }
+        .dropdown-menu-snl {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+            padding: 6px;
+        }
+        .dropdown-menu-snl .dropdown-item {
+            color: #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            padding: 7px 12px;
+        }
+        .dropdown-menu-snl .dropdown-item:hover,
+        .dropdown-menu-snl .dropdown-item.active {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+        }
         .card-snl {
             border: none;
             border-radius: 14px;
             box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
             background: #fff;
+            max-width: 100%;
         }
         .stat-card {
             border-radius: 14px;
@@ -121,102 +155,122 @@
 <body>
     {% if g.user %}
     <nav class="navbar navbar-expand-lg snl-navbar sticky-top no-print">
-        <div class="container-fluid px-3">
-            <a class="navbar-brand snl-brand" href="{{ url_for('main.dashboard') }}">
+        <div class="container-fluid px-2 px-xl-3">
+            <a class="navbar-brand snl-brand me-2" href="{{ url_for('main.dashboard') }}">
                 <span class="snl-brand-badge"><i class="bi bi-lightning-charge-fill"></i> POS</span>
                 <span>ŞENELLER POS</span>
             </a>
 
-            <div class="d-flex align-items-center gap-2 d-lg-none">
+            <div class="d-flex align-items-center gap-1 d-lg-none">
                 <button type="button" class="btn btn-sm btn-warning text-dark fw-bold d-none" id="pwaYukleBtnMobil" onclick="pwaUygulamaYukle()">
-                    <i class="bi bi-download"></i> Yükle
+                    <i class="bi bi-download"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-info" onclick="mobilBaglantiModalAc()" title="Telefondan Bağlan QR">
-                    <i class="bi bi-qr-code"></i>
+                <button type="button" class="btn btn-sm btn-info text-dark fw-bold" onclick="mobilBaglantiModalAc()" title="Telefondan Bağlan QR">
+                    <i class="bi bi-qr-code-scan"></i>
                 </button>
-                <span class="badge bg-secondary text-truncate" style="max-width: 90px;">{{ g.user.ad_soyad }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-box-arrow-right"></i></a>
+                <button class="navbar-toggler btn btn-sm btn-outline-light border-secondary px-2 py-1 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Menü">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
             </div>
 
             <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 ms-lg-3">
+                <ul class="navbar-nav me-auto my-2 my-lg-0 gap-1 align-items-lg-center flex-wrap">
                     <li class="nav-item">
                         <a class="nav-link nav-link-snl {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
-                            <i class="bi bi-speedometer2 me-1"></i>Özet
+                            <i class="bi bi-speedometer2"></i><span>Özet</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link nav-link-snl nav-link-pos" href="{{ url_for('main.pos_ekrani', mod='satis') }}">
-                            <i class="bi bi-upc-scan me-1"></i>Hızlı Satış (POS)
+                            <i class="bi bi-upc-scan"></i><span>Satış POS</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link nav-link-snl nav-link-montaj" href="{{ url_for('main.pos_ekrani', mod='montaj') }}">
-                            <i class="bi bi-tools me-1"></i>Montaj Kaydı Aç
+                            <i class="bi bi-tools"></i><span>Montaj Aç</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link nav-link-snl {% if request.endpoint == 'ai.ai_pdf_ekrani' %}active{% endif %}" style="background: rgba(245, 158, 11, 0.22); color: #fde68a !important;" href="{{ url_for('ai.ai_pdf_ekrani') }}">
-                            <i class="bi bi-stars me-1 text-warning"></i>AI PDF Dönüştür
+                            <i class="bi bi-stars text-warning"></i><span>AI PDF</span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link nav-link-snl dropdown-toggle {% if 'stok.' in (request.endpoint or '') %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-box-seam"></i><span>Stok & Sayım</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-snl">
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'stok.urunler_listesi' %}active{% endif %}" href="{{ url_for('stok.urunler_listesi') }}">
+                                    <i class="bi bi-box-seam me-2 text-info"></i>Stok & Ürün Listesi
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'stok.hizli_sayim' %}active{% endif %}" href="{{ url_for('stok.hizli_sayim') }}">
+                                    <i class="bi bi-camera me-2 text-warning"></i>Barkodlu Mobil Sayım
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'stok.excel_islemleri' %}active{% endif %}" href="{{ url_for('stok.excel_islemleri') }}">
+                                    <i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel Yükle / İndir
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-snl {% if 'musteri' in (request.endpoint or '') %}active{% endif %}" href="{{ url_for('cari.musteriler_listesi') }}">
+                            <i class="bi bi-people"></i><span>Müşteriler</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if 'urunler' in request.endpoint or 'excel' in request.endpoint %}active{% endif %}" href="{{ url_for('stok.urunler_listesi') }}">
-                            <i class="bi bi-box-seam me-1"></i>Stok & Ürünler
+                        <a class="nav-link nav-link-snl {% if 'islem' in (request.endpoint or '') %}active{% endif %}" href="{{ url_for('main.islemler_listesi') }}">
+                            <i class="bi bi-receipt"></i><span>Fişler</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if request.endpoint == 'stok.hizli_sayim' %}active{% endif %}" href="{{ url_for('stok.hizli_sayim') }}">
-                            <i class="bi bi-camera me-1"></i>Mobil Sayım
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if 'musteri' in request.endpoint %}active{% endif %}" href="{{ url_for('cari.musteriler_listesi') }}">
-                            <i class="bi bi-people me-1"></i>Müşteriler & Montaj Geçmişi
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if 'islem' in request.endpoint %}active{% endif %}" href="{{ url_for('main.islemler_listesi') }}">
-                            <i class="bi bi-receipt me-1"></i>Fişler & Montajlar
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if 'tedarikci' in request.endpoint %}active{% endif %}" href="{{ url_for('cari.tedarikciler_listesi') }}">
-                            <i class="bi bi-truck me-1"></i>Toptancılar
+                        <a class="nav-link nav-link-snl {% if 'tedarikci' in (request.endpoint or '') %}active{% endif %}" href="{{ url_for('cari.tedarikciler_listesi') }}">
+                            <i class="bi bi-truck"></i><span>Toptancılar</span>
                         </a>
                     </li>
                     {% if g.user.is_patron or g.user.yetki_rapor_gor %}
                     <li class="nav-item">
                         <a class="nav-link nav-link-snl {% if request.endpoint == 'main.raporlar' %}active{% endif %}" href="{{ url_for('main.raporlar') }}">
-                            <i class="bi bi-graph-up-arrow me-1"></i>Rapor & Kasa
+                            <i class="bi bi-graph-up-arrow"></i><span>Rapor & Kasa</span>
                         </a>
                     </li>
                     {% endif %}
                     {% if g.user.is_patron %}
-                    <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if request.endpoint == 'auth.personel_yonetimi' %}active{% endif %}" href="{{ url_for('auth.personel_yonetimi') }}">
-                            <i class="bi bi-person-gear me-1"></i>Personel & Ayar
+                    <li class="nav-item dropdown">
+                        <a class="nav-link nav-link-snl dropdown-toggle {% if request.endpoint in ('auth.personel_yonetimi', 'auth.bulut_yonetimi') %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear-fill text-warning"></i><span>Yönetim & Bulut</span>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link nav-link-snl {% if request.endpoint == 'auth.bulut_yonetimi' %}active{% endif %}" style="background: rgba(16, 185, 129, 0.22); color: #a7f3d0 !important;" href="{{ url_for('auth.bulut_yonetimi') }}">
-                            <i class="bi bi-cloud-check-fill me-1 text-success"></i>7/24 Bulut Sunucu
-                        </a>
+                        <ul class="dropdown-menu dropdown-menu-snl dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'auth.bulut_yonetimi' %}active{% endif %}" href="{{ url_for('auth.bulut_yonetimi') }}">
+                                    <i class="bi bi-cloud-check-fill me-2 text-success"></i>7/24 Bulut Sunucu Kurulumu
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'auth.personel_yonetimi' %}active{% endif %}" href="{{ url_for('auth.personel_yonetimi') }}">
+                                    <i class="bi bi-person-gear me-2 text-warning"></i>Personel Yetkileri & Ayarlar
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     {% endif %}
                 </ul>
 
-                <div class="d-flex align-items-center gap-2 text-light">
-                    <button type="button" class="btn btn-sm btn-warning text-dark fw-bold d-none" id="pwaYukleBtnDesktop" onclick="pwaUygulamaYukle()">
+                <div class="d-flex flex-wrap align-items-center gap-2 text-light mt-2 mt-lg-0">
+                    <button type="button" class="btn btn-sm btn-warning text-dark fw-bold d-none text-nowrap" id="pwaYukleBtnDesktop" onclick="pwaUygulamaYukle()">
                         <i class="bi bi-phone-fill me-1"></i>Uygulamayı Kur
                     </button>
-                    <button type="button" class="btn btn-sm btn-info text-dark fw-bold" onclick="mobilBaglantiModalAc()">
-                        <i class="bi bi-qr-code-scan me-1"></i>Telefondan Bağlan (4.5G / QR)
+                    <button type="button" class="btn btn-sm btn-info text-dark fw-bold text-nowrap" onclick="mobilBaglantiModalAc()">
+                        <i class="bi bi-qr-code-scan me-1"></i>Telefon QR
                     </button>
-                    <span class="badge bg-dark border border-secondary px-2 py-1">
-                        <i class="bi bi-currency-dollar text-warning"></i>1$ = {{ g.ayarlar.dolar_kuru|para }} ₺
+                    <span class="badge bg-dark border border-secondary px-2 py-1 text-nowrap">
+                        <i class="bi bi-currency-dollar text-warning"></i>1$={{ g.ayarlar.dolar_kuru|para }}₺
                     </span>
-                    <span class="badge {% if g.user.is_patron %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} px-2 py-1">
+                    <span class="badge {% if g.user.is_patron %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} px-2 py-1 text-truncate" style="max-width: 145px;" title="{{ g.user.ad_soyad }}">
                         <i class="bi bi-person-fill"></i> {{ g.user.ad_soyad }}
                     </span>
                     <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-light" title="Çıkış Yap">
@@ -236,16 +290,16 @@
             <i class="bi bi-upc-scan"></i><span>Satış POS</span>
         </a>
         <a href="{{ url_for('main.pos_ekrani', mod='montaj') }}" class="{% if request.endpoint == 'main.pos_ekrani' and request.args.get('mod') == 'montaj' %}active{% endif %}">
-            <i class="bi bi-tools text-warning"></i><span class="text-warning">Montaj Gir</span>
+            <i class="bi bi-tools text-warning"></i><span class="text-warning">Montaj</span>
         </a>
-        <a href="{{ url_for('stok.urunler_listesi') }}" class="{% if 'urunler' in request.endpoint %}active{% endif %}">
+        <a href="{{ url_for('ai.ai_pdf_ekrani') }}" class="{% if request.endpoint == 'ai.ai_pdf_ekrani' %}active{% endif %}">
+            <i class="bi bi-stars text-warning"></i><span>AI PDF</span>
+        </a>
+        <a href="{{ url_for('stok.urunler_listesi') }}" class="{% if 'stok.' in (request.endpoint or '') %}active{% endif %}">
             <i class="bi bi-box-seam"></i><span>Stoklar</span>
         </a>
-        <a href="{{ url_for('cari.musteriler_listesi') }}" class="{% if 'musteri' in request.endpoint %}active{% endif %}">
-            <i class="bi bi-people-fill"></i><span>Müşteriler</span>
-        </a>
-        <a href="{{ url_for('main.islemler_listesi') }}" class="{% if 'islem' in request.endpoint %}active{% endif %}">
-            <i class="bi bi-receipt"></i><span>Geçmiş</span>
+        <a href="{{ url_for('cari.musteriler_listesi') }}" class="{% if 'musteri' in (request.endpoint or '') %}active{% endif %}">
+            <i class="bi bi-people-fill"></i><span>Cariler</span>
         </a>
     </div>
     {% endif %}
