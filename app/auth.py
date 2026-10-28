@@ -369,3 +369,33 @@ def bulut_paket_indir():
         flash("Bulut kurulum paketi hazırlanıyor, lütfen tekrar deneyin.", "warning")
         return redirect(url_for("auth.bulut_yonetimi"))
     return send_file(zip_yolu, as_attachment=True, download_name="seneller_pos_bulut_paketi.zip")
+
+
+@auth_bp.route("/api/bulut-canli-guncelle", methods=["GET", "POST"])
+def api_bulut_canli_guncelle():
+    """
+    Bulut sunucuda (Render / PythonAnywhere) çalışırken GitHub'daki en güncel
+    HTML şablonlarını anında indirip (yeniden derleme beklemeden) aktif eder.
+    """
+    import urllib.request
+    sablonlar = [
+        "base.html", "pos.html", "ai_pdf.html", "dashboard.html", "urunler.html",
+        "excel.html", "sayim.html", "musteriler.html", "musteri_detay.html",
+        "islemler.html", "islem_detay.html", "tedarikciler.html", "tedarikci_detay.html",
+        "raporlar.html", "personel.html", "bulut.html", "login.html"
+    ]
+    guncellenen = 0
+    tpl_klasor = os.path.join(os.path.dirname(__file__), "templates")
+    for s in sablonlar:
+        try:
+            raw_url = f"https://raw.githubusercontent.com/senelcemil3/seneller-pos/main/app/templates/{s}?t={int(os.times().elapsed * 1000)}"
+            with urllib.request.urlopen(raw_url, timeout=5) as resp:
+                icerik = resp.read()
+                if icerik and b"<!DOCTYPE html>" in icerik or b"{% extends" in icerik:
+                    with open(os.path.join(tpl_klasor, s), "wb") as f:
+                        f.write(icerik)
+                    guncellenen += 1
+        except Exception:
+            pass
+    current_app.jinja_env.cache.clear()
+    return jsonify({"basarili": True, "guncellenen_sablon_sayisi": guncellenen})

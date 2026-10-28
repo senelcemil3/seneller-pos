@@ -22,3 +22,4 @@ class Config:
     )
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+    TEMPLATES_AUTO_RELOAD = True
