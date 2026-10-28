@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Fişler, Satışlar ve Montaj Kayıtları{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-receipt text-primary me-2"></i>Tüm Satışlar & Montaj Kayıtları</h4>
+        <div class="text-muted small">Geçmiş satış fişleri, montaj kayıtları ve kullanılan malzemeler</div>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('main.islemler_listesi') }}" class="btn btn-sm {% if not secili_tip %}btn-dark{% else %}btn-outline-dark{% endif %}">Tümü</a>
+        <a href="{{ url_for('main.islemler_listesi', tip='montaj') }}" class="btn btn-sm {% if secili_tip == 'montaj' %}btn-warning text-dark fw-bold{% else %}btn-outline-warning text-dark{% endif %}">Sadece Montajlar</a>
+        <a href="{{ url_for('main.islemler_listesi', tip='satis') }}" class="btn btn-sm {% if secili_tip == 'satis' %}btn-primary{% else %}btn-outline-primary{% endif %}">Sadece POS Satışlar</a>
+        <a href="{{ url_for('main.islemler_listesi', tip='alis') }}" class="btn btn-sm {% if secili_tip == 'alis' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Alış Faturaları</a>
+    </div>
+</div>
+
+<!-- Filtre Barı -->
+<div class="card card-snl p-3 mb-3">
+    <form method="GET" class="row g-2 align-items-end">
+        <input type="hidden" name="tip" value="{{ secili_tip }}">
+        <div class="col-12 col-md-4">
+            <label class="form-label small fw-bold mb-1">Arama (Müşteri, Adres, Fiş No, Montaj Türü)</label>
+            <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Müşteri adı, mahalle/adres veya fiş no...">
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-bold mb-1">Personel</label>
+            <select name="personel_id" class="form-select form-select-sm">
+                <option value="">Tümü</option>
+                {% for p in personeller %}
+                <option value="{{ p.id }}" {% if secili_personel|string == p.id|string %}selected{% endif %}>{{ p.ad_soyad }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-bold mb-1">Başlangıç</label>
+            <input type="date" name="bas_tarih" value="{{ bas_tarih }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-bold mb-1">Bitiş</label>
+            <input type="date" name="bit_tarih" value="{{ bit_tarih }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-sm btn-dark w-100">Filtrele</button>
+            <a href="{{ url_for('main.islemler_listesi') }}" class="btn btn-sm btn-outline-secondary">Sıfırla</a>
+        </div>
+    </form>
+</div>
+
+<div class="card card-snl p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-dark">
+                <tr>
+                    <th>Fiş No</th>
+                    <th>Tür</th>
+                    <th>Tarih</th>
+                    <th>Müşteri / Montaj Adresi</th>
+                    <th>Kullanılan Ürünler</th>
+                    <th>Personel</th>
+                    <th>Ödeme</th>
+                    <th class="text-end">Genel Toplam</th>
+                    <th class="text-end">Detay</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in islemler %}
+                <tr>
+                    <td class="font-monospace fw-bold">{{ i.fis_no }}</td>
+                    <td>
+                        {% if i.islem_tipi == 'montaj' %}
+                        <span class="badge bg-warning text-dark">MONTAJ</span>
+                        {% elif i.islem_tipi == 'satis' %}
+                        <span class="badge bg-primary">SATIŞ</span>
+                        {% else %}
+                        <span class="badge bg-secondary">ALIŞ</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap">{{ i.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>
+                        {% if i.musteri %}
+                        <a href="{{ url_for('cari.musteri_detay', id=i.musteri.id) }}" class="fw-bold text-dark text-decoration-none">{{ i.musteri.ad_soyad }}</a>
+                        {% elif i.tedarikci %}
+                        <span class="fw-bold">{{ i.tedarikci.firma_adi }}</span>
+                        {% else %}
+                        <span class="text-muted">Perakende Müşteri</span>
+                        {% endif %}
+                        {% if i.montaj_basligi %}<div class="text-primary fw-semibold">{{ i.montaj_basligi }}</div>{% endif %}
+                        {% if i.montaj_adresi %}<div class="text-muted"><i class="bi bi-geo-alt"></i> {{ i.montaj_adresi }}</div>{% endif %}
+                    </td>
+                    <td>
+                        {% for k in i.kalemler[:3] %}
+                            <span class="badge bg-light text-dark border">{{ k.miktar|miktar_fmt }}x {{ k.urun_adi[:22] }}</span>
+                        {% endfor %}
+                        {% if i.kalemler|length > 3 %}
+                            <span class="badge bg-secondary">+{{ i.kalemler|length - 3 }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ i.kullanici.ad_soyad if i.kullanici else '-' }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ i.odeme_yontemi|upper }}</span></td>
+                    <td class="text-end fw-bold fs-6">{{ i.genel_toplam|para }} ₺</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('main.islem_detay', id=i.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-printer"></i> Fiş
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-5">Kayıt bulunamadı.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

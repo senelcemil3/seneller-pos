@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Personel Yetkileri & Şirket Ayarları{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- SOL: Personel Yönetimi ve Yetki Kutucukları (BenimPOS Tarzı) -->
+    <div class="col-12 col-lg-8">
+        <div class="card card-snl p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-person-gear text-primary me-2"></i>Personel Hesapları & Yetki Kısıtlamaları</h5>
+                    <div class="small text-muted">Sahadaki elemanların ve kasiyerlerin neleri görebileceğini buradan yönetin</div>
+                </div>
+                <button class="btn btn-primary fw-bold btn-sm" data-bs-toggle="modal" data-bs-target="#yeniPersonelModal">
+                    <i class="bi bi-person-plus-fill me-1"></i> Yeni Personel Ekle
+                </button>
+            </div>
+
+            {% for p in personeller %}
+            <form method="POST" class="border rounded-3 p-3 mb-3 bg-light">
+                <input type="hidden" name="form_islem" value="guncelle">
+                <input type="hidden" name="personel_id" value="{{ p.id }}">
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-4">
+                        <label class="small text-muted">Ad Soyad</label>
+                        <input type="text" name="ad_soyad" value="{{ p.ad_soyad }}" class="form-control form-control-sm fw-bold">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted">Kullanıcı Adı</label>
+                        <input type="text" value="{{ p.kullanici_adi }}" class="form-control form-control-sm" disabled>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small text-muted">Rol</label>
+                        <select name="rol" class="form-select form-select-sm">
+                            <option value="personel" {% if p.rol == 'personel' %}selected{% endif %}>Personel</option>
+                            <option value="patron" {% if p.rol == 'patron' %}selected{% endif %}>Patron</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted">Yeni Şifre (Boş=Değişmez)</label>
+                        <input type="password" name="yeni_sifre" class="form-control form-control-sm" placeholder="••••">
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 border-top">
+                    <div class="d-flex flex-wrap gap-3 small">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="yetki_maliyet_gor" id="ym_{{ p.id }}" {% if p.yetki_maliyet_gor %}checked{% endif %}>
+                            <label class="form-check-label" for="ym_{{ p.id }}">Alış Maliyeti & Kârı Görsün</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="yetki_rapor_gor" id="yr_{{ p.id }}" {% if p.yetki_rapor_gor %}checked{% endif %}>
+                            <label class="form-check-label" for="yr_{{ p.id }}">Raporları & Kasayı Görsün</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="yetki_stok_duzenle" id="ys_{{ p.id }}" {% if p.yetki_stok_duzenle %}checked{% endif %}>
+                            <label class="form-check-label" for="ys_{{ p.id }}">Stok / Ürün Ekleyebilsin</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="yetki_fiyat_degistir" id="yf_{{ p.id }}" {% if p.yetki_fiyat_degistir %}checked{% endif %}>
+                            <label class="form-check-label" for="yf_{{ p.id }}">Satışta Fiyat Değiştirebilsin</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="yetki_urun_sil" id="ysil_{{ p.id }}" {% if p.yetki_urun_sil %}checked{% endif %}>
+                            <label class="form-check-label" for="ysil_{{ p.id }}">Ürün / Fiş Silebilsin</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="aktif" id="yakt_{{ p.id }}" {% if p.aktif %}checked{% endif %}>
+                            <label class="form-check-label fw-bold text-success" for="yakt_{{ p.id }}">Aktif</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-dark fw-semibold">Kaydet</button>
+                </div>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SAĞ: Şirket & Dolar Kuru Ayarları -->
+    <div class="col-12 col-lg-4">
+        <div class="card card-snl p-3">
+            <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-warning me-2"></i>Şirket & Döviz Kuru Ayarları</h5>
+            <form method="POST">
+                <input type="hidden" name="form_islem" value="ayarlar">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Şirket Adı</label>
+                    <input type="text" name="sirket_adi" value="{{ g.ayarlar.sirket_adi }}" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Alt Başlık (Fişte Görünür)</label>
+                    <input type="text" name="alt_baslik" value="{{ g.ayarlar.alt_baslik }}" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Güncel Dolar Kuru ($ -> ₺)</label>
+                    <input type="number" step="0.01" name="dolar_kuru" value="{{ g.ayarlar.dolar_kuru }}" class="form-control fw-bold text-primary">
+                    <div class="form-text small">Dolar alış fiyatı olan ürünlerin TL maliyeti bu kurdan hesaplanır.</div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Telefon</label>
+                    <input type="text" name="telefon" value="{{ g.ayarlar.telefon }}" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Adres</label>
+                    <input type="text" name="adres" value="{{ g.ayarlar.adres }}" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Fiş Alt Notu</label>
+                    <input type="text" name="fis_alt_notu" value="{{ g.ayarlar.fis_alt_notu }}" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-warning fw-bold w-100 text-dark">Ayarları Güncelle</button>
+            </form>
+        </div>
+
+        <!-- Zırhlı Veritabanı & Otomatik Yedekleme Kartı -->
+        <div class="card card-snl p-3 mt-3 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-shield-check text-success me-1"></i>Veritabanı & Yedekler (WAL Aktif)</h6>
+                <form method="POST" class="m-0">
+                    <input type="hidden" name="form_islem" value="simdi_yedekle">
+                    <button type="submit" class="btn btn-sm btn-success fw-bold">
+                        <i class="bi bi-hdd-fill me-1"></i> Şimdi Yedek Al
+                    </button>
+                </form>
+            </div>
+            <p class="small text-muted mb-2">
+                Veritabanı çoklu kullanıcı kilitlemelerine karşı <strong>WAL (Eşzamanlı Yazma)</strong> modunda çalışmaktadır ve her açılışta otomatik yedeklenir.
+            </p>
+            <div class="list-group list-group-flush small" style="max-height: 200px; overflow-y: auto;">
+                {% for y in yedekler %}
+                <div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1">
+                    <span class="text-truncate font-monospace" style="max-width: 70%;">{{ y.ad }}</span>
+                    <a href="{{ url_for('auth.yedek_indir', dosya_adi=y.ad) }}" class="btn btn-sm btn-outline-dark py-0 px-2">
+                        <i class="bi bi-download"></i> {{ y.boyut_kb }} KB
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-muted small py-2">Henüz yedek dosyası yok.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Personel Modal -->
+<div class="modal fade" id="yeniPersonelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <input type="hidden" name="form_islem" value="ekle">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title">Yeni Saha / Kasa Personeli Ekle</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Personel Adı Soyadı *</label>
+                    <input type="text" name="ad_soyad" class="form-control" placeholder="Ör: Ahmet Usta (Montaj)" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Giriş Kullanıcı Adı *</label>
+                    <input type="text" name="kullanici_adi" class="form-control" placeholder="Ör: ahmet" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Şifre / PIN *</label>
+                    <input type="text" name="sifre" class="form-control" value="1234" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Rol</label>
+                    <select name="rol" class="form-select">
+                        <option value="personel">Saha / Tezgâh Personeli</option>
+                        <option value="patron">Patron (Tam Yetki)</option>
+                    </select>
+                </div>
+                <hr>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" name="yetki_stok_duzenle" id="np_stok" checked>
+                    <label class="form-check-label small" for="np_stok">Yeni ürün ekleyebilsin ve sayım yapabilsin</label>
+                </div>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" name="yetki_fiyat_degistir" id="np_fiyat" checked>
+                    <label class="form-check-label small" for="np_fiyat">Montaj/Satış esnasında fiyat değiştirebilsin</label>
+                </div>
+                <div class="form-check mb-1">
+                    <input class="form-check-input" type="checkbox" name="yetki_maliyet_gor" id="np_maliyet">
+                    <label class="form-check-label small" for="np_maliyet">Alış maliyetini ve kârı görebilsin</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary fw-bold w-100">Personeli Oluştur</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

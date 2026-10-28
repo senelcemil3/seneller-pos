@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Excel Ürün Aktarımı{% endblock %}
+
+{% block content %}
+<div class="row g-3 justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card card-snl p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold mb-0"><i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Excel ile Toplu Ürün Yükle & İndir</h4>
+                <a href="{{ url_for('stok.excel_indir') }}" class="btn btn-outline-success fw-bold">
+                    <i class="bi bi-download me-1"></i> Mevcut Stokları Excel İndir
+                </a>
+            </div>
+
+            <p class="text-muted small">
+                Excel dosyanızdaki <code>Barkod</code>, <code>grup</code>, <code>Katagori (Ürün Adı)</code>, <code>Marka</code>, <code>Model</code>, <code>Adet</code>, <code>Alış Fiyatı TL</code>, <code>Alış Fiyatı DOLAR</code> ve <code>Satış Fiyatı</code> sütunları otomatik tanınır.
+            </p>
+
+            <!-- Seçenek 1: Bilgisayarınızdaki Excel Dosyasını Seçerek Yükleme -->
+            <form method="POST" enctype="multipart/form-data" class="border rounded-3 p-3 bg-light mb-4">
+                <input type="hidden" name="kaynak" value="dosya">
+                <h6 class="fw-bold mb-3"><i class="bi bi-upload me-1"></i> Excel Dosyası (.xlsx) Seçerek Yükle</h6>
+                <div class="mb-3">
+                    <input type="file" name="excel_dosyasi" accept=".xlsx" class="form-control form-control-lg" required>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="uzerine_yaz" id="uzerineYaz1" checked>
+                    <label class="form-check-label small" for="uzerineYaz1">
+                        Aynı barkod veya marka/modele sahip ürünler varsa stok adedini ve fiyatlarını güncelle
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-success btn-lg fw-bold">
+                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Seçilen Excel Dosyasını Yükle
+                </button>
+            </form>
+
+            <!-- Seçenek 2: Masaüstündeki stok2 .xlsx Dosyasını Tek Tıkla Yükleme Kısayolu -->
+            {% if hazir_dosya_var %}
+            <form method="POST" class="border border-primary rounded-3 p-3 bg-primary-subtle">
+                <input type="hidden" name="kaynak" value="hazir_stok2">
+                <input type="hidden" name="uzerine_yaz" value="on">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h6 class="fw-bold text-primary mb-1"><i class="bi bi-lightning-fill me-1"></i> Hazır Dosya Tespit Edildi: <code>stok2 .xlsx</code></h6>
+                        <div class="small text-muted">{{ varsayilan_excel_yolu }}</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-magic me-1"></i> stok2.xlsx Dosyasını Tek Tıkla Aktar
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

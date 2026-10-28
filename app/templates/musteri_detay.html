@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}{{ musteri.ad_soyad }} - Montaj & Cari Geçmişi{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
+    <div>
+        <a href="{{ url_for('cari.musteriler_listesi') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Müşteriler Listesine Dön</a>
+        <h4 class="fw-bold mb-0">{{ musteri.ad_soyad }}</h4>
+        <div class="text-muted small">
+            <i class="bi bi-telephone me-1"></i> {{ musteri.telefon or 'Telefon yok' }}
+            • <i class="bi bi-geo-alt ms-2 me-1"></i> {{ musteri.adres or 'Adres belirtilmedi' }}
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('main.pos_ekrani', mod='montaj', musteri_id=musteri.id) }}" class="btn btn-warning fw-bold text-dark">
+            <i class="bi bi-tools me-1"></i> Bu Müşteriye Yeni Montaj Gir
+        </a>
+        <a href="{{ url_for('main.pos_ekrani', mod='satis', musteri_id=musteri.id) }}" class="btn btn-primary fw-bold">
+            <i class="bi bi-cart-plus me-1"></i> Satış Yap
+        </a>
+        <button class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#tahsilatModal">
+            <i class="bi bi-cash-coin me-1"></i> Tahsilat Al
+        </button>
+        <button class="btn btn-outline-success fw-bold" onclick="whatsappCariGonder()">
+            <i class="bi bi-whatsapp me-1"></i> WhatsApp Özet Gönder
+        </button>
+        <button class="btn btn-outline-dark" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Ekstre Yazdır
+        </button>
+    </div>
+</div>
+
+<!-- Cari Özet -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card card-snl p-3 border-start border-4 border-danger">
+            <div class="text-muted small fw-bold">GÜNCEL AÇIK HESAP BAKİYESİ (BORÇ)</div>
+            <div class="fs-2 fw-bold {% if musteri.bakiye > 0 %}text-danger{% else %}text-success{% endif %}">{{ musteri.bakiye|para }} ₺</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card card-snl p-3 border-start border-4 border-warning">
+            <div class="text-muted small fw-bold">TOPLAM MONTAJ & SATIŞ SAYISI</div>
+            <div class="fs-3 fw-bold">{{ islemler|length }} İşlem</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card card-snl p-3 border-start border-4 border-primary">
+            <div class="text-muted small fw-bold">MÜŞTERİDE KULLANILAN ÜRÜN ARAMA</div>
+            <input type="text" id="gecmisUrunAra" class="form-control form-control-sm mt-1" placeholder="Takılan ürün/marka/model filtrele..." oninput="gecmisFiltrele()">
+        </div>
+    </div>
+</div>
+
+<!-- Montaj ve Satış Geçmişi (Kalem Kalem Kime Ne Kullanıldı) -->
+<h6 class="fw-bold mb-2"><i class="bi bi-clock-history me-1"></i> Yapılan Montajlar, Satışlar ve Kullanılan Tüm Ürünler</h6>
+{% for i in islemler %}
+<div class="card card-snl p-3 mb-3 gecmis-kart">
+    <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-2 mb-2 gap-2">
+        <div>
+            <span class="badge {% if i.islem_tipi == 'montaj' %}bg-warning text-dark{% else %}bg-primary{% endif %} me-1">
+                {% if i.islem_tipi == 'montaj' %}MONTAJ / SERVİS{% else %}POS SATIŞ{% endif %}
+            </span>
+            <strong class="font-monospace">{{ i.fis_no }}</strong>
+            <span class="text-muted small ms-2"><i class="bi bi-calendar3"></i> {{ i.tarih.strftime('%d.%m.%Y %H:%M') }}</span>
+            <span class="badge bg-light text-dark border ms-2"><i class="bi bi-person"></i> Personel: {{ i.kullanici.ad_soyad if i.kullanici else '-' }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end">
+                <span class="small text-muted">Toplam:</span> <strong class="fs-6">{{ i.genel_toplam|para }} ₺</strong>
+                {% if i.kalan_veresiye > 0 %}
+                <span class="badge bg-danger ms-1">Açık Hesap: {{ i.kalan_veresiye|para }} ₺</span>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('main.islem_detay', id=i.id) }}" class="btn btn-sm btn-outline-dark no-print">Fiş/Fatura</a>
+        </div>
+    </div>
+
+    {% if i.montaj_basligi or i.montaj_adresi or i.aciklama %}
+    <div class="small bg-warning-subtle p-2 rounded mb-2">
+        {% if i.montaj_basligi %}<strong>Yapılan İş:</strong> {{ i.montaj_basligi }} • {% endif %}
+        {% if i.montaj_adresi %}<strong>Montaj Yeri:</strong> <i class="bi bi-geo-alt-fill text-danger"></i> {{ i.montaj_adresi }} • {% endif %}
+        {% if i.aciklama %}<strong>Not:</strong> {{ i.aciklama }}{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle small mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Barkod</th>
+                    <th>Kullanılan Ürün / Malzeme Adı</th>
+                    <th>Marka / Model</th>
+                    <th class="text-center">Miktar</th>
+                    <th class="text-end">Birim Fiyat</th>
+                    <th class="text-end">Satır Toplamı</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k in i.kalemler %}
+                <tr>
+                    <td class="font-monospace text-muted">{{ k.barkod or '-' }}</td>
+                    <td class="fw-semibold">{{ k.urun_adi }}</td>
+                    <td>{{ k.marka_model or '-' }}</td>
+                    <td class="text-center fw-bold">{{ k.miktar|miktar_fmt }} {{ k.birim }}</td>
+                    <td class="text-end">{{ k.birim_fiyat|para }} ₺</td>
+                    <td class="text-end fw-bold">{{ k.toplam_tutar|para }} ₺</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card card-snl p-4 text-center text-muted mb-4">Bu müşteriye ait henüz montaj veya satış kaydı yok.</div>
+{% endfor %}
+
+<!-- Tahsilat Geçmişi -->
+{% if tahsilatlar %}
+<div class="card card-snl p-3 mt-3">
+    <h6 class="fw-bold mb-2"><i class="bi bi-wallet2 text-success me-1"></i> Ödeme / Tahsilat Geçmişi</h6>
+    <table class="table table-sm small mb-0">
+        <thead>
+            <tr>
+                <th>Tarih</th>
+                <th>Ödeme Yöntemi</th>
+                <th>Açıklama</th>
+                <th>Alan Personel</th>
+                <th class="text-end">Tutar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tahsilatlar %}
+            <tr>
+                <td>{{ t.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td><span class="badge bg-success">{{ t.odeme_yontemi|upper }}</span></td>
+                <td>{{ t.aciklama }}</td>
+                <td>{{ t.kullanici.ad_soyad if t.kullanici else '-' }}</td>
+                <td class="text-end fw-bold text-success">{{ t.tutar|para }} ₺</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Tahsilat Al Modal -->
+<div class="modal fade" id="tahsilatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <input type="hidden" name="form_islem" value="tahsilat">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title"><i class="bi bi-cash-coin me-1"></i> {{ musteri.ad_soyad }} - Cari Tahsilat Al</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border">Mevcut Borç Bakiyesi: <strong>{{ musteri.bakiye|para }} ₺</strong></div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Alınan Tutar (₺) *</label>
+                    <input type="number" step="0.01" name="tutar" class="form-control form-control-lg fw-bold" value="{{ musteri.bakiye if musteri.bakiye > 0 else 0 }}" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ödeme Yöntemi</label>
+                    <select name="odeme_yontemi" class="form-select">
+                        <option value="nakit">Nakit</option>
+                        <option value="kart">Kredi Kartı</option>
+                        <option value="havale">Havale / EFT</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Not / Açıklama</label>
+                    <input type="text" name="aciklama" class="form-control" placeholder="Ör: Montaj bakiyesi tahsilatı">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-success fw-bold w-100">Tahsilatı Kaydet ve Bakiyeden Düş</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function gecmisFiltrele() {
+    const aranan = document.getElementById("gecmisUrunAra").value.toLowerCase();
+    document.querySelectorAll(".gecmis-kart").forEach(kart => {
+        kart.style.display = kart.innerText.toLowerCase().includes(aranan) ? "" : "none";
+    });
+}
+
+function whatsappCariGonder() {
+    let tel = "{{ (musteri.telefon or '')|replace(' ', '')|replace('-', '') }}";
+    if (tel.startsWith("0")) tel = "9" + tel;
+    else if (tel.startsWith("5")) tel = "90" + tel;
+
+    const metin = encodeURIComponent(
+        `*{{ g.ayarlar.sirket_adi }} - Cari Hesap & Montaj Bilgilendirmesi*\n` +
+        `Sayın *{{ musteri.ad_soyad }}*,\n` +
+        `Güncel Açık Hesap Bakiyeniz: *{{ musteri.bakiye|para }} TL*\n` +
+        `Toplam Kayıtlı Montaj/Satış: {{ islemler|length }} Adet\n` +
+        `İyi günler dileriz.`
+    );
+    window.open(tel ? `https://wa.me/${tel}?text=${metin}` : `https://wa.me/?text=${metin}`, "_blank");
+}
+</script>
+{% endblock %}

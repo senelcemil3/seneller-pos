@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}{{ tedarikci.firma_adi }} - Toptancı Cari & Alış Faturası{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <a href="{{ url_for('cari.tedarikciler_listesi') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Toptancılar Listesi</a>
+        <h4 class="fw-bold mb-0">{{ tedarikci.firma_adi }}</h4>
+        <div class="text-muted small">{{ tedarikci.yetkili or '' }} • {{ tedarikci.telefon or '' }}</div>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#alisFaturasiModal">
+            <i class="bi bi-box-arrow-in-down me-1"></i> Mal Alımı / Alış Faturası Gir
+        </button>
+        <button class="btn btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#tediyeModal">
+            <i class="bi bi-cash-stack me-1"></i> Toptancıya Ödeme Yap
+        </button>
+    </div>
+</div>
+
+<div class="card card-snl p-3 mb-3 border-start border-4 border-danger">
+    <div class="small text-muted fw-bold">BU TOPTANCIYA KALAN BORCUMUZ</div>
+    <div class="fs-2 fw-bold text-danger">{{ tedarikci.bakiye|para }} ₺</div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-7">
+        <div class="card card-snl p-3">
+            <h6 class="fw-bold mb-2">Alış Faturaları (Giren Ürünler)</h6>
+            <table class="table table-sm small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fiş No</th>
+                        <th>Tarih</th>
+                        <th>Alınan Ürünler</th>
+                        <th class="text-end">Toplam</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in islemler %}
+                    <tr>
+                        <td class="font-monospace"><a href="{{ url_for('main.islem_detay', id=i.id) }}">{{ i.fis_no }}</a></td>
+                        <td>{{ i.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>
+                            {% for k in i.kalemler %}
+                                <div>+{{ k.miktar|miktar_fmt }} {{ k.birim }} <strong>{{ k.urun_adi }}</strong> ({{ k.birim_fiyat|para }} ₺)</div>
+                            {% endfor %}
+                        </td>
+                        <td class="text-end fw-bold">{{ i.genel_toplam|para }} ₺</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">Henüz alış faturası girilmedi.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <div class="card card-snl p-3">
+            <h6 class="fw-bold mb-2">Yapılan Ödemeler</h6>
+            <table class="table table-sm small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Yöntem</th>
+                        <th>Açıklama</th>
+                        <th class="text-end">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in odemeler %}
+                    <tr>
+                        <td>{{ o.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td><span class="badge bg-secondary">{{ o.odeme_yontemi|upper }}</span></td>
+                        <td>{{ o.aciklama }}</td>
+                        <td class="text-end fw-bold">{{ o.tutar|para }} ₺</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-3">Ödeme kaydı yok.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Alış Faturası Modal -->
+<div class="modal fade" id="alisFaturasiModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <input type="hidden" name="form_islem" value="alis_faturasi">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title">Mal Alımı / Alış Faturası İşle (Stoğa Ekle)</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Alınan Ürün *</label>
+                    <select name="urun_id" class="form-select" required>
+                        <option value="">-- Ürün Seçin --</option>
+                        {% for u in urunler %}
+                        <option value="{{ u.id }}">{{ u.ad }} ({{ u.kod or u.barkod or '' }}) [Stok: {{ u.stok_miktari|miktar_fmt }}]</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-4">
+                        <label class="form-label small fw-bold">Gelen Adet/Miktar</label>
+                        <input type="number" step="0.01" name="miktar" class="form-control" value="1" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-bold">Birim Alış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="birim_alis_tl" class="form-control" value="0" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-bold">Yeni Satış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="yeni_satis_fiyati" class="form-control" placeholder="Değişmeyecekse 0">
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ödeme Şekli</label>
+                    <select name="odeme_durumu" class="form-select">
+                        <option value="veresiye">Açık Hesap (Toptancı Carisine Borç Yaz)</option>
+                        <option value="nakit">Peşin Nakit Ödendi</option>
+                        <option value="kart">Kredi Kartı ile Ödendi</option>
+                        <option value="havale">Havale / EFT ile Ödendi</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Fatura No / Not</label>
+                    <input type="text" name="aciklama" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary fw-bold w-100">Stoğa Ekle ve Faturayı Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tediye Modal -->
+<div class="modal fade" id="tediyeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <input type="hidden" name="form_islem" value="tediye">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title">{{ tedarikci.firma_adi }} - Ödeme Yap</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ödenen Tutar (₺) *</label>
+                    <input type="number" step="0.01" name="tutar" class="form-control form-control-lg fw-bold" value="{{ tedarikci.bakiye if tedarikci.bakiye > 0 else 0 }}" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ödeme Yöntemi</label>
+                    <select name="odeme_yontemi" class="form-select">
+                        <option value="nakit">Nakit</option>
+                        <option value="havale">Havale / EFT</option>
+                        <option value="kart">Kredi Kartı</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Açıklama</label>
+                    <input type="text" name="aciklama" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-danger fw-bold w-100">Ödemeyi Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

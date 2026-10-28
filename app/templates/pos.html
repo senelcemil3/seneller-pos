@@ -1,0 +1,703 @@
+{% extends "base.html" %}
+{% block title %}Hızlı Satış & Montaj POS{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<style>
+    .urun-kutu {
+        cursor: pointer;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+        transition: all 0.12s;
+        user-select: none;
+    }
+    .urun-kutu:hover {
+        border-color: #2563eb;
+        background: #f8fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(37,99,235,0.12);
+    }
+    .urun-kutu:active { transform: scale(0.98); }
+    .fis-tab-btn.active {
+        background: #0f172a !important;
+        color: #fff !important;
+        font-weight: 700;
+    }
+    .mod-banner-montaj {
+        background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+        border: 2px solid #f59e0b;
+    }
+    .mod-banner-satis {
+        background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
+        border: 2px solid #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Üst Mod Seçimi & Çoklu Sepet Sekmeleri (BenimPOS Tarzı) -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="btn-group shadow-sm" role="group">
+        <button type="button" id="btnModSatis" class="btn btn-lg fw-bold {% if islem_modu != 'montaj' %}btn-primary{% else %}btn-outline-primary bg-white{% endif %}" onclick="modDegistir('satis')">
+            <i class="bi bi-upc-scan me-1"></i> Tezgâh Hızlı Satış (POS)
+        </button>
+        <button type="button" id="btnModMontaj" class="btn btn-lg fw-bold {% if islem_modu == 'montaj' %}btn-warning text-dark{% else %}btn-outline-warning bg-white text-dark{% endif %}" onclick="modDegistir('montaj')">
+            <i class="bi bi-tools me-1"></i> Saha Montaj / Servis Kaydı
+        </button>
+        <a href="{{ url_for('ai.ai_pdf_ekrani') }}" class="btn btn-lg btn-dark fw-bold">
+            <i class="bi bi-stars text-warning me-1"></i> PDF'den Forma Çevir (AI)
+        </a>
+    </div>
+
+    <!-- Bekleyen Sepet Sekmeleri (Fiş 1..4) -->
+    <div class="d-flex align-items-center gap-1 bg-white p-1 rounded-3 shadow-sm border">
+        <span class="small text-muted px-2 fw-semibold d-none d-sm-inline">Sepetler:</span>
+        {% for idx in range(1, 5) %}
+        <button type="button" class="btn btn-sm btn-light fis-tab-btn {% if idx == 1 %}active{% endif %}" id="fisTab{{ idx }}" onclick="sepetSekmesiDegistir({{ idx }})">
+            Fiş {{ idx }} <span class="badge bg-secondary ms-1" id="fisSayac{{ idx }}">0</span>
+        </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Kamera Barkod Okuyucu Alanı (Mobilde açılır) -->
+<div id="kameraKapsayici" class="card card-snl p-3 mb-3 d-none border border-primary">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong class="text-primary"><i class="bi bi-camera-video me-1"></i> Telefon Kamerasıyla Barkod Okutun</strong>
+        <button type="button" class="btn btn-sm btn-danger" onclick="kamerayiKapat()"><i class="bi bi-x-lg"></i> Kapat</button>
+    </div>
+    <div id="qr-reader" style="width: 100%; max-width: 480px; margin: 0 auto;"></div>
+</div>
+
+<div class="row g-3">
+    <!-- SOL TARAF: Barkod Okuma & Ürün Seçimi -->
+    <div class="col-12 col-lg-7">
+        <div class="card card-snl p-3 h-100">
+            <!-- Barkod ve Arama Satırı -->
+            <div class="row g-2 mb-3">
+                <div class="col-12 col-md-6">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-dark text-warning"><i class="bi bi-upc-scan"></i></span>
+                        <input type="text" id="barkodInput" class="form-control fw-bold" placeholder="Barkod okutun veya kod yazıp Enter'a basın..." autofocus>
+                        <button class="btn btn-outline-primary" type="button" onclick="kamerayiAc()" title="Telefon Kamerasıyla Barkod Okut">
+                            <i class="bi bi-camera-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                        <input type="text" id="aramaInput" class="form-control" placeholder="Ürün adı, marka veya model ara..." oninput="urunleriGetir()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('aramaInput').value=''; urunleriGetir();">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grup Filtre Butonları & İşçilik/Serbest Kalem Ekleme -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div class="d-flex flex-wrap gap-1" style="max-height: 76px; overflow-y: auto;">
+                    <button type="button" class="btn btn-sm btn-dark grup-btn" onclick="grupSec('', this)">Tümü</button>
+                    {% for g_ad in gruplar %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary grup-btn" onclick="grupSec('{{ g_ad }}', this)">{{ g_ad }}</button>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-dark fw-semibold" data-bs-toggle="modal" data-bs-target="#serbestKalemModal">
+                    <i class="bi bi-plus-circle me-1"></i> İşçilik / Servis / Özel Kalem Ekle
+                </button>
+            </div>
+
+            <!-- Ürün Izgarası -->
+            <div id="urunlerGrid" class="row g-2" style="max-height: 62vh; overflow-y: auto;">
+                <!-- JS ile doldurulur -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ TARAF: Sepet, Montaj Bilgileri ve Ödeme Bitirme -->
+    <div class="col-12 col-lg-5" id="sepetBolumu">
+        <div class="card card-snl p-3 h-100">
+            <!-- Müşteri & Montaj Detay Kutusu -->
+            <div id="modBanner" class="rounded-3 p-3 mb-3 {% if islem_modu == 'montaj' %}mod-banner-montaj{% else %}mod-banner-satis{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong id="modBaslikEtiketi" class="fs-6">
+                        {% if islem_modu == 'montaj' %}
+                        <i class="bi bi-tools me-1"></i> Montaj Müşterisi & Kurulum Yeri
+                        {% else %}
+                        <i class="bi bi-person-lines-fill me-1"></i> Müşteri (Cari) Seçimi
+                        {% endif %}
+                    </strong>
+                    <button type="button" class="btn btn-sm btn-dark" onclick="yeniMusteriFormuAcKapat()">
+                        <i class="bi bi-person-plus-fill me-1"></i> Hızlı Yeni Müşteri
+                    </button>
+                </div>
+
+                <!-- Kayıtlı Müşteri Seçimi -->
+                <div id="mevcutMusteriKutu">
+                    <select id="musteriSecim" class="form-select fw-semibold" onchange="musteriSecildi()">
+                        <option value="">-- Perakende / Genel Müşteri --</option>
+                        {% for m in musteriler %}
+                        <option value="{{ m.id }}" data-adres="{{ m.adres or '' }}" {% if secili_musteri_id|string == m.id|string %}selected{% endif %}>
+                            {{ m.ad_soyad }} {% if m.telefon %}({{ m.telefon }}){% endif %} {% if m.bakiye > 0 %}[Borç: {{ m.bakiye|para }} ₺]{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Hızlı Yeni Müşteri Ekleme Alanı -->
+                <div id="yeniMusteriKutu" class="d-none mt-2 p-2 bg-white rounded border">
+                    <div class="small fw-bold text-primary mb-1">Yeni Müşteri Kartı Aç (Otomatik Kaydedilir):</div>
+                    <div class="row g-2">
+                        <div class="col-7">
+                            <input type="text" id="ymAdSoyad" class="form-control form-control-sm" placeholder="Müşteri Adı Soyadı / Firma *">
+                        </div>
+                        <div class="col-5">
+                            <input type="text" id="ymTelefon" class="form-control form-control-sm" placeholder="Telefon No">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Montaj Özel Alanları -->
+                <div id="montajEkAlanlar" class="mt-2 {% if islem_modu != 'montaj' %}d-none{% endif %}">
+                    <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-bold mb-1">Yapılan İş / Montaj Türü</label>
+                            <input type="text" id="montajBasligi" class="form-control form-control-sm" list="montajTurleriList" placeholder="Ör: 4'lü Kamera Montajı, Uydu, PC...">
+                            <datalist id="montajTurleriList">
+                                <option value="Güvenlik Kamera Montajı">
+                                <option value="Alarm Sistemi Kurulumu">
+                                <option value="Anten & Uydu Kurulumu / Arıza">
+                                <option value="Bilgisayar Toplama & Format">
+                                <option value="Elektrik / Elektronik Servis">
+                            </datalist>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label small fw-bold mb-1">Montaj Adresi / Nereye Takıldı?</label>
+                            <input type="text" id="montajAdresi" class="form-control form-control-sm" placeholder="Mahalle, Sokak, Bina / Dükkan adı...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sepet Tablosu -->
+            <div class="table-responsive mb-2" style="max-height: 36vh; overflow-y: auto;">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ürün / Malzeme</th>
+                            <th class="text-center" style="width: 110px;">Miktar</th>
+                            <th class="text-end" style="width: 100px;">Birim ₺</th>
+                            <th class="text-end" style="width: 95px;">Toplam</th>
+                            <th style="width: 32px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="sepetGovde">
+                        <!-- JS ile doldurulur -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- İskonto, Not ve Genel Toplam -->
+            <div class="border-top pt-2 mt-auto">
+                <div class="row g-2 align-items-center mb-2">
+                    <div class="col-6">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">İskonto ₺</span>
+                            <input type="number" step="0.01" id="genelIskonto" class="form-control" value="0" oninput="sepetiCiz()">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <input type="text" id="islemAciklama" class="form-control form-control-sm" placeholder="Fiş / Montaj notu...">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-3 mb-3">
+                    <div>
+                        <div class="small text-secondary">GENEL TOPLAM</div>
+                        <div class="small text-warning" id="kalemSayisiBilgi">0 Kalem Ürün</div>
+                    </div>
+                    <div class="fs-2 fw-bold text-warning" id="genelToplamGosterge">0,00 ₺</div>
+                </div>
+
+                <!-- Ödeme / Kayıt Butonları -->
+                <div class="row g-2">
+                    <div class="col-6 col-sm-3">
+                        <button type="button" class="btn btn-success w-100 py-2 fw-bold" onclick="islemiTamamla('nakit')">
+                            <i class="bi bi-cash-stack d-block fs-5"></i> NAKİT
+                        </button>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <button type="button" class="btn btn-primary w-100 py-2 fw-bold" onclick="islemiTamamla('kart')">
+                            <i class="bi bi-credit-card d-block fs-5"></i> KART
+                        </button>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <button type="button" class="btn btn-info text-dark w-100 py-2 fw-bold" onclick="islemiTamamla('havale')">
+                            <i class="bi bi-bank d-block fs-5"></i> HAVALE
+                        </button>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <button type="button" class="btn btn-warning text-dark w-100 py-2 fw-bold" onclick="islemiTamamla('veresiye')">
+                            <i class="bi bi-journal-bookmark-fill d-block fs-5"></i> CARİ / AÇIK
+                        </button>
+                    </div>
+                    <div class="col-8">
+                        <button type="button" class="btn btn-outline-dark btn-sm w-100 fw-semibold" onclick="parcaliOdemeModalAc()">
+                            <i class="bi bi-pie-chart me-1"></i> Parçalı Ödeme (Kapora + Kalan Cari)
+                        </button>
+                    </div>
+                    <div class="col-4">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 fw-semibold" onclick="sepetiTemizle()">
+                            <i class="bi bi-trash me-1"></i> Temizle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobil Sabit Sepet Özeti Barı (Sadece Telefonda Görünür) -->
+<div id="mobilSepetCubugu" class="d-lg-none position-fixed start-0 end-0 px-3 z-3 d-none" style="bottom: 70px;">
+    <div class="bg-warning text-dark rounded-3 shadow-lg p-2 px-3 d-flex justify-content-between align-items-center border border-dark"
+         onclick="document.getElementById('sepetBolumu').scrollIntoView({behavior:'smooth'});">
+        <div>
+            <strong id="mobilSepetSayac">0 Ürün</strong> • <span class="fw-bold fs-6" id="mobilSepetToplam">0,00 ₺</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-dark fw-bold">
+            Sepete Git / Kaydet <i class="bi bi-arrow-down-circle ms-1"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Serbest İşçilik / Hizmet Ekleme Modal -->
+<div class="modal fade" id="serbestKalemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title"><i class="bi bi-wrench-adjustable me-1"></i> İşçilik / Format / Servis Kalemi Ekle</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Hizmet / İşlem Adı</label>
+                    <input type="text" id="skAd" class="form-control" placeholder="Ör: Kamera Montaj İşçiliği, PC Format Ücreti, Uydu Ayarı...">
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Miktar</label>
+                        <input type="number" step="0.1" id="skMiktar" class="form-control" value="1">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Ücret (₺)</label>
+                        <input type="number" step="0.01" id="skFiyat" class="form-control" value="500">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-primary fw-bold" onclick="serbestKalemEkle()">Sepete Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parçalı Ödeme Modal -->
+<div class="modal fade" id="parcaliModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white py-2">
+                <h6 class="modal-title">Parçalı Ödeme / Kapora Girişi</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-secondary py-2 mb-3">
+                    Genel Toplam: <strong id="pmGenelToplam">0,00 ₺</strong>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Alınan Nakit (₺)</label>
+                    <input type="number" step="0.01" id="pmNakit" class="form-control" value="0" oninput="parcaliKalanHesapla()">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Alınan Kredi Kartı (₺)</label>
+                    <input type="number" step="0.01" id="pmKart" class="form-control" value="0" oninput="parcaliKalanHesapla()">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Alınan Havale/EFT (₺)</label>
+                    <input type="number" step="0.01" id="pmHavale" class="form-control" value="0" oninput="parcaliKalanHesapla()">
+                </div>
+                <div class="p-2 bg-warning-subtle border border-warning rounded mt-2">
+                    Müşteri Carisine (Açık Hesaba) Yazılacak Kalan: <strong id="pmKalanVeresiye" class="text-danger">0,00 ₺</strong>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-success fw-bold w-100" onclick="islemiTamamla('parcali')">Parçalı Ödemeyi Onayla ve Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let aktifMod = "{{ islem_modu }}";
+    let aktifSekme = 1;
+    let seciliGrup = "";
+    let fiyatDegistirmeIzni = {{ 'true' if (g.user.is_patron or g.user.yetki_fiyat_degistir) else 'false' }};
+    let sepetler = JSON.parse(localStorage.getItem("seneller_pos_sepetler") || '{"1":[],"2":[],"3":[],"4":[]}');
+    let html5QrCode = null;
+
+    function sepetKaydetLocal() {
+        localStorage.setItem("seneller_pos_sepetler", JSON.stringify(sepetler));
+        for (let i = 1; i <= 4; i++) {
+            const el = document.getElementById("fisSayac" + i);
+            if (el) el.textContent = (sepetler[i] || []).length;
+        }
+    }
+
+    function modDegistir(yeniMod) {
+        aktifMod = yeniMod;
+        const btnSatis = document.getElementById("btnModSatis");
+        const btnMontaj = document.getElementById("btnModMontaj");
+        const banner = document.getElementById("modBanner");
+        const ekAlanlar = document.getElementById("montajEkAlanlar");
+        const etiket = document.getElementById("modBaslikEtiketi");
+
+        if (yeniMod === "montaj") {
+            btnMontaj.className = "btn btn-lg fw-bold btn-warning text-dark";
+            btnSatis.className = "btn btn-lg fw-bold btn-outline-primary bg-white";
+            banner.className = "rounded-3 p-3 mb-3 mod-banner-montaj";
+            ekAlanlar.classList.remove("d-none");
+            etiket.innerHTML = '<i class="bi bi-tools me-1"></i> Montaj Müşterisi & Kurulum Yeri';
+        } else {
+            btnSatis.className = "btn btn-lg fw-bold btn-primary";
+            btnMontaj.className = "btn btn-lg fw-bold btn-outline-warning bg-white text-dark";
+            banner.className = "rounded-3 p-3 mb-3 mod-banner-satis";
+            ekAlanlar.classList.add("d-none");
+            etiket.innerHTML = '<i class="bi bi-person-lines-fill me-1"></i> Müşteri (Cari) Seçimi';
+        }
+    }
+
+    function sepetSekmesiDegistir(no) {
+        aktifSekme = no;
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById("fisTab" + i).classList.toggle("active", i === no);
+        }
+        sepetiCiz();
+    }
+
+    function yeniMusteriFormuAcKapat() {
+        const kutu = document.getElementById("yeniMusteriKutu");
+        kutu.classList.toggle("d-none");
+        if (!kutu.classList.contains("d-none")) {
+            document.getElementById("musteriSecim").value = "";
+            document.getElementById("ymAdSoyad").focus();
+        }
+    }
+
+    function musteriSecildi() {
+        const sel = document.getElementById("musteriSecim");
+        const opt = sel.options[sel.selectedIndex];
+        if (opt && opt.dataset.adres) {
+            const adrInput = document.getElementById("montajAdresi");
+            if (adrInput && !adrInput.value) adrInput.value = opt.dataset.adres;
+        }
+    }
+
+    function grupSec(grupAdi, btn) {
+        seciliGrup = grupAdi;
+        document.querySelectorAll(".grup-btn").forEach(b => {
+            b.classList.remove("btn-dark");
+            b.classList.add("btn-outline-secondary");
+        });
+        btn.classList.remove("btn-outline-secondary");
+        btn.classList.add("btn-dark");
+        urunleriGetir();
+    }
+
+    async function urunleriGetir() {
+        const q = document.getElementById("aramaInput").value.trim();
+        const url = `/api/urun-ara?q=${encodeURIComponent(q)}&grup=${encodeURIComponent(seciliGrup)}`;
+        const res = await fetch(url);
+        const urunler = await res.json();
+        const grid = document.getElementById("urunlerGrid");
+
+        if (!urunler.length) {
+            grid.innerHTML = `<div class="col-12 text-center text-muted py-5">Ürün bulunamadı.</div>`;
+            return;
+        }
+
+        grid.innerHTML = urunler.map(u => {
+            const stokRenk = u.stok_miktari <= 0 ? 'bg-danger' : (u.stok_miktari <= u.kritik_stok ? 'bg-warning text-dark' : 'bg-success');
+            return `
+            <div class="col-6 col-sm-4 col-xl-3">
+                <div class="urun-kutu h-100 d-flex flex-column justify-content-between" onclick='sepeteUrunEkle(${JSON.stringify(u).replace(/'/g, "&#39;")})'>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start gap-1 mb-1">
+                            <span class="badge bg-light text-secondary border small text-truncate" style="max-width: 65%;">${u.marka || u.grup || 'Genel'}</span>
+                            <span class="badge ${stokRenk}">${u.stok_miktari} ${u.birim}</span>
+                        </div>
+                        <div class="fw-bold small text-dark mb-1" style="line-height: 1.25;">${u.ad}</div>
+                        ${u.kod ? `<div class="mb-1"><span class="badge bg-warning-subtle text-dark border border-warning font-monospace">${u.kod}</span></div>` : ''}
+                        <div class="text-muted font-monospace" style="font-size: 0.71rem;">${u.barkod || ''}</div>
+                    </div>
+                    <div class="mt-2 pt-1 border-top d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary">${u.satis_fiyati.toFixed(2)} ₺</span>
+                        <i class="bi bi-plus-circle-fill text-primary fs-5"></i>
+                    </div>
+                </div>
+            </div>`;
+        }).join("");
+    }
+
+    function sepeteUrunEkle(u) {
+        if (!sepetler[aktifSekme]) sepetler[aktifSekme] = [];
+        const liste = sepetler[aktifSekme];
+        const mevcut = liste.find(item => item.urun_id && item.urun_id === u.id);
+        if (mevcut) {
+            mevcut.miktar = +(mevcut.miktar + 1).toFixed(2);
+        } else {
+            const tamAd = u.kod ? `${u.ad} [${u.kod}]` : u.ad;
+            liste.push({
+                urun_id: u.id,
+                barkod: u.barkod || "",
+                kod: u.kod || "",
+                urun_adi: tamAd,
+                birim: u.birim || "Adet",
+                miktar: 1,
+                birim_fiyat: u.satis_fiyati || 0
+            });
+        }
+        sepetiCiz();
+    }
+
+    function serbestKalemEkle() {
+        const ad = document.getElementById("skAd").value.trim() || "Montaj / Servis İşçiliği";
+        const miktar = parseFloat(document.getElementById("skMiktar").value) || 1;
+        const fiyat = parseFloat(document.getElementById("skFiyat").value) || 0;
+        if (!sepetler[aktifSekme]) sepetler[aktifSekme] = [];
+        sepetler[aktifSekme].push({
+            urun_id: null,
+            barkod: "",
+            urun_adi: ad,
+            birim: "Hizmet",
+            miktar: miktar,
+            birim_fiyat: fiyat
+        });
+        sepetiCiz();
+        bootstrap.Modal.getInstance(document.getElementById("serbestKalemModal")).hide();
+        document.getElementById("skAd").value = "";
+    }
+
+    function sepetiCiz() {
+        sepetKaydetLocal();
+        const liste = sepetler[aktifSekme] || [];
+        const tbody = document.getElementById("sepetGovde");
+
+        if (!liste.length) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Sepet boş. Ürün seçin veya barkod okutun.</td></tr>`;
+            document.getElementById("genelToplamGosterge").textContent = "0,00 ₺";
+            document.getElementById("kalemSayisiBilgi").textContent = "0 Kalem Ürün";
+            document.getElementById("mobilSepetCubugu")?.classList.add("d-none");
+            return;
+        }
+
+        let araToplam = 0;
+        tbody.innerHTML = liste.map((k, idx) => {
+            const satirTutar = k.miktar * k.birim_fiyat;
+            araToplam += satirTutar;
+            return `
+            <tr>
+                <td>
+                    <div class="fw-semibold small">${k.urun_adi}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">${k.barkod || k.birim}</div>
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <button class="btn btn-outline-secondary px-2" type="button" onclick="miktarDegistir(${idx}, -1)">-</button>
+                        <input type="number" step="0.1" class="form-control text-center px-1" value="${k.miktar}" onchange="miktarGir(${idx}, this.value)">
+                        <button class="btn btn-outline-secondary px-2" type="button" onclick="miktarDegistir(${idx}, 1)">+</button>
+                    </div>
+                </td>
+                <td>
+                    <input type="number" step="0.01" class="form-control form-control-sm text-end" value="${k.birim_fiyat}"
+                           ${fiyatDegistirmeIzni ? '' : 'readonly'} onchange="fiyatGir(${idx}, this.value)">
+                </td>
+                <td class="text-end fw-bold small">${satirTutar.toFixed(2)} ₺</td>
+                <td class="text-end">
+                    <button class="btn btn-sm text-danger p-0" onclick="satirSil(${idx})"><i class="bi bi-x-circle-fill"></i></button>
+                </td>
+            </tr>`;
+        }).join("");
+
+        const iskonto = parseFloat(document.getElementById("genelIskonto").value) || 0;
+        const genelToplam = Math.max(0, araToplam - iskonto);
+        const fmtToplam = genelToplam.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ₺";
+        document.getElementById("genelToplamGosterge").textContent = fmtToplam;
+        document.getElementById("kalemSayisiBilgi").textContent = `${liste.length} Çeşit Ürün`;
+        const mCubuk = document.getElementById("mobilSepetCubugu");
+        if (mCubuk) {
+            mCubuk.classList.remove("d-none");
+            document.getElementById("mobilSepetSayac").textContent = `${liste.length} Çeşit Ürün`;
+            document.getElementById("mobilSepetToplam").textContent = fmtToplam;
+        }
+    }
+
+    function miktarDegistir(idx, delta) {
+        const item = sepetler[aktifSekme][idx];
+        item.miktar = +(item.miktar + delta).toFixed(2);
+        if (item.miktar <= 0) sepetler[aktifSekme].splice(idx, 1);
+        sepetiCiz();
+    }
+
+    function miktarGir(idx, val) {
+        const m = parseFloat(val);
+        if (isNaN(m) || m <= 0) sepetler[aktifSekme].splice(idx, 1);
+        else sepetler[aktifSekme][idx].miktar = m;
+        sepetiCiz();
+    }
+
+    function fiyatGir(idx, val) {
+        const f = parseFloat(val);
+        if (!isNaN(f) && f >= 0) sepetler[aktifSekme][idx].birim_fiyat = f;
+        sepetiCiz();
+    }
+
+    function satirSil(idx) {
+        sepetler[aktifSekme].splice(idx, 1);
+        sepetiCiz();
+    }
+
+    function sepetiTemizle() {
+        sepetler[aktifSekme] = [];
+        document.getElementById("genelIskonto").value = 0;
+        sepetiCiz();
+    }
+
+    // Barkod Okutma (Enter tuşu)
+    document.getElementById("barkodInput").addEventListener("keydown", async function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const kod = this.value.trim();
+            if (!kod) return;
+            await barkodIleEkle(kod);
+            this.value = "";
+        }
+    });
+
+    async function barkodIleEkle(kod) {
+        const res = await fetch(`/api/barkod/${encodeURIComponent(kod)}`);
+        if (res.ok) {
+            const u = await res.json();
+            sepeteUrunEkle(u);
+        } else {
+            alert(`'${kod}' barkodlu/kodlu ürün bulunamadı!`);
+        }
+    }
+
+    // Telefon Kamerasıyla Barkod Okuma
+    function kamerayiAc() {
+        document.getElementById("kameraKapsayici").classList.remove("d-none");
+        html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 140 } },
+            async (decodedText) => {
+                await barkodIleEkle(decodedText);
+                kamerayiKapat();
+            },
+            () => {}
+        ).catch(err => {
+            alert("Kamera açılamadı: " + err);
+        });
+    }
+
+    function kamerayiKapat() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+        }
+        document.getElementById("kameraKapsayici").classList.add("d-none");
+    }
+
+    function parcaliOdemeModalAc() {
+        const liste = sepetler[aktifSekme] || [];
+        if (!liste.length) { alert("Sepet boş!"); return; }
+        let ara = liste.reduce((acc, k) => acc + (k.miktar * k.birim_fiyat), 0);
+        let gen = Math.max(0, ara - (parseFloat(document.getElementById("genelIskonto").value) || 0));
+        document.getElementById("pmGenelToplam").textContent = gen.toFixed(2) + " ₺";
+        document.getElementById("pmNakit").value = 0;
+        document.getElementById("pmKart").value = 0;
+        document.getElementById("pmHavale").value = 0;
+        parcaliKalanHesapla();
+        new bootstrap.Modal(document.getElementById("parcaliModal")).show();
+    }
+
+    function parcaliKalanHesapla() {
+        const liste = sepetler[aktifSekme] || [];
+        let ara = liste.reduce((acc, k) => acc + (k.miktar * k.birim_fiyat), 0);
+        let gen = Math.max(0, ara - (parseFloat(document.getElementById("genelIskonto").value) || 0));
+        let odenen = (parseFloat(document.getElementById("pmNakit").value) || 0)
+                   + (parseFloat(document.getElementById("pmKart").value) || 0)
+                   + (parseFloat(document.getElementById("pmHavale").value) || 0);
+        let kalan = Math.max(0, gen - odenen);
+        document.getElementById("pmKalanVeresiye").textContent = kalan.toFixed(2) + " ₺";
+    }
+
+    async function islemiTamamla(odemeYontemi) {
+        const liste = sepetler[aktifSekme] || [];
+        if (!liste.length) {
+            alert("Sepette ürün yok!");
+            return;
+        }
+
+        const musteriId = document.getElementById("musteriSecim").value;
+        const ymAd = document.getElementById("ymAdSoyad").value.trim();
+
+        if (aktifMod === "montaj" && !musteriId && !ymAd) {
+            const devam = confirm("Montaj kaydı için müşteri seçmediniz. Yine de genel müşteri olarak kaydedilsin mi?");
+            if (!devam) return;
+        }
+
+        const payload = {
+            islem_tipi: aktifMod,
+            musteri_id: musteriId || null,
+            yeni_musteri: ymAd ? {
+                ad_soyad: ymAd,
+                telefon: document.getElementById("ymTelefon").value.trim(),
+                adres: document.getElementById("montajAdresi").value.trim()
+            } : null,
+            montaj_basligi: document.getElementById("montajBasligi").value.trim(),
+            montaj_adresi: document.getElementById("montajAdresi").value.trim(),
+            iskonto_tutari: parseFloat(document.getElementById("genelIskonto").value) || 0,
+            aciklama: document.getElementById("islemAciklama").value.trim(),
+            odeme_yontemi: odemeYontemi,
+            odenen_nakit: parseFloat(document.getElementById("pmNakit")?.value) || 0,
+            odenen_kart: parseFloat(document.getElementById("pmKart")?.value) || 0,
+            odenen_havale: parseFloat(document.getElementById("pmHavale")?.value) || 0,
+            kalemler: liste
+        };
+
+        const res = await fetch("/api/islem-kaydet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const sonuc = await res.json();
+        if (sonuc.basarili) {
+            sepetler[aktifSekme] = [];
+            sepetKaydetLocal();
+            window.location.href = sonuc.detay_url;
+        } else {
+            alert(sonuc.mesaj || "Hata oluştu!");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        musteriSecildi();
+        sepetiCiz();
+        urunleriGetir();
+    });
+</script>
+{% endblock %}

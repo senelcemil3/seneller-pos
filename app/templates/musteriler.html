@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Müşteriler & Montaj Geçmişi{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary me-2"></i>Müşteriler & Montaj Geçmişi (Cariler)</h4>
+        <div class="text-muted small">Kime, hangi adrese, hangi tarihte ne ürün kullanıldığını buradan sorgulayabilirsiniz</div>
+    </div>
+    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#yeniMusteriModal">
+        <i class="bi bi-person-plus-fill me-1"></i> Yeni Müşteri Kartı Aç
+    </button>
+</div>
+
+<!-- Arama -->
+<div class="card card-snl p-3 mb-3">
+    <form method="GET" class="row g-2">
+        <div class="col-12 col-md-7">
+            <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Müşteri adı, telefon numarası veya montaj adresi ara...">
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="filtre" class="form-select" onchange="this.form.submit()">
+                <option value="">Tüm Müşteriler</option>
+                <option value="borclu" {% if filtre == 'borclu' %}selected{% endif %}>Açık Hesabı / Borcu Olanlar</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <button type="submit" class="btn btn-dark w-100">Sorgula</button>
+        </div>
+    </form>
+</div>
+
+<div class="card card-snl p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-dark">
+                <tr>
+                    <th>Müşteri Adı / Ünvanı</th>
+                    <th>Telefon</th>
+                    <th>Montaj Adresi / Konum</th>
+                    <th class="text-center">İşlem / Montaj Sayısı</th>
+                    <th class="text-end">Cari Bakiye (Alacak)</th>
+                    <th class="text-end">Hızlı İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in musteriler %}
+                <tr>
+                    <td class="fw-bold fs-6">
+                        <a href="{{ url_for('cari.musteri_detay', id=m.id) }}" class="text-decoration-none text-dark">
+                            {{ m.ad_soyad }}
+                        </a>
+                    </td>
+                    <td>{{ m.telefon or '-' }}</td>
+                    <td class="text-muted"><i class="bi bi-geo-alt"></i> {{ m.adres or '-' }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-secondary">{{ m.islemler|length }} Kayıt</span>
+                    </td>
+                    <td class="text-end fw-bold fs-6 {% if m.bakiye > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ m.bakiye|para }} ₺
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a href="{{ url_for('main.pos_ekrani', mod='montaj', musteri_id=m.id) }}" class="btn btn-sm btn-warning text-dark fw-semibold">
+                            <i class="bi bi-tools me-1"></i> Montaj Gir
+                        </a>
+                        <a href="{{ url_for('cari.musteri_detay', id=m.id) }}" class="btn btn-sm btn-primary fw-semibold">
+                            <i class="bi bi-folder2-open me-1"></i> Geçmiş & Detay
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-5">Kayıtlı müşteri bulunamadı.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Yeni Müşteri Modal -->
+<div class="modal fade" id="yeniMusteriModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title"><i class="bi bi-person-plus-fill me-1"></i> Yeni Müşteri / Montaj Carisi Aç</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ad Soyad / Firma Adı *</label>
+                    <input type="text" name="ad_soyad" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Telefon</label>
+                    <input type="text" name="telefon" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Montaj Adresi / Konum</label>
+                    <input type="text" name="adres" class="form-control" placeholder="Mahalle, Sokak, Apartman / Dükkan...">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Devreden Borç / Açılış Bakiyesi (₺)</label>
+                    <input type="number" step="0.01" name="acilis_bakiye" class="form-control" value="0">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Notlar</label>
+                    <textarea name="notlar" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary fw-bold">Müşteriyi Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}7/24 Bulut Sunucu Kurulum & Yönetim - Şeneller POS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h4 class="fw-bold mb-0">
+            <i class="bi bi-cloud-check-fill text-success me-2"></i>7/24 Tam Bulut Sunucu (Render & PythonAnywhere)
+        </h4>
+        <small class="text-muted">Dükkândaki bilgisayarınız tamamen kapalı olsa bile sahadaki personelin ve sizin 7/24 kesintisiz kullanabileceği bulut merkezi</small>
+    </div>
+    <div>
+        {% if bulut_ayar.aktif_mod == 'bulut' and bulut_ayar.bulut_url %}
+        <span class="badge bg-success fs-6 px-3 py-2">
+            <i class="bi bi-broadcast-pin me-1"></i>Aktif Mod: 7/24 Bulut Sunucu ({{ bulut_ayar.bulut_url }})
+        </span>
+        {% else %}
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+            <i class="bi bi-pc-display me-1"></i>Aktif Mod: Dükkân Bilgisayarı + Sabit Kapı
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Sabit Telefon Kapısını 7/24 Bulut Sunucuya Bağlama Kartı -->
+<div class="card card-snl border-success border-2 mb-4 shadow-sm">
+    <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-link-45deg me-1"></i>ADIM 2: Sabit Telefon Linklerinizi 7/24 Bulut Sunucunuza Sabitleyin</span>
+        <span class="badge bg-light text-success">Bilgisayar Kapalıyken Çalışır</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-7">
+                <p class="mb-2 small text-dark">
+                    Aşağıdaki <strong>Seçenek 1 (Render.com)</strong> veya <strong>Seçenek 2 (PythonAnywhere)</strong> ile bulut sunucunuzu açtıktan sonra size verilen kalıcı adresi (ör. <code>https://seneller-pos.onrender.com</code> veya <code>https://senelcemil3.pythonanywhere.com</code>) buraya yapıştırıp kaydedin.
+                </p>
+                <form method="POST" action="{{ url_for('auth.bulut_yonetimi') }}" class="row g-2">
+                    <input type="hidden" name="islem" value="sabitle">
+                    <div class="col-sm-8">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light fw-bold"><i class="bi bi-cloud-fill text-success"></i></span>
+                            <input type="url" name="bulut_url" class="form-control fw-bold"
+                                   placeholder="https://seneller-pos.onrender.com"
+                                   value="{{ bulut_ayar.bulut_url or '' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 d-grid">
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="bi bi-check2-circle me-1"></i>Sabit Kapıyı Buluta Bağla
+                        </button>
+                    </div>
+                </form>
+                {% if bulut_ayar.aktif_mod == 'bulut' %}
+                <form method="POST" action="{{ url_for('auth.bulut_yonetimi') }}" class="mt-2">
+                    <input type="hidden" name="islem" value="yerel_moda_don">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Tekrar Dükkân Bilgisayarı Moduna Dön
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="col-lg-5 border-start">
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="badge bg-warning text-dark mb-1">PATRON SABİT LİNK</span><br>
+                            <img src="{{ sabit_patron_qr }}" class="img-fluid rounded my-1" style="max-width:105px;">
+                            <div class="small text-truncate"><a href="{{ sabit_patron_url }}" target="_blank" class="fw-bold">{{ sabit_patron_url }}</a></div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="badge bg-info text-dark mb-1">PERSONEL SABİT LİNK</span><br>
+                            <img src="{{ sabit_eleman_qr }}" class="img-fluid rounded my-1" style="max-width:105px;">
+                            <div class="small text-truncate"><a href="{{ sabit_eleman_url }}" target="_blank" class="fw-bold">{{ sabit_eleman_url }}</a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADIM 1: İki Bulut Seçeneği (Render.com vs PythonAnywhere) -->
+<div class="row g-4">
+    <!-- SEÇENEK 1: RENDER.COM (TEK TIKLA OTOMATİK KURULUM) -->
+    <div class="col-lg-6">
+        <div class="card card-snl h-100 border-primary border-2">
+            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-rocket-takeoff-fill me-1"></i>Seçenek 1: Render.com (Tek Tıkla Otomatik Kurulum)</span>
+                <span class="badge bg-warning text-dark">En Kolay • 2 Dakika</span>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <div class="alert alert-primary py-2 small mb-3">
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                        <strong>Hazırlık Tamam:</strong> 342 adet stok ürününüz (Tiandy kameralar, NVR kayıt cihazları, PoE switchler, model kodları) ve 6 adet müşteri PDF'iniz GitHub deponuza (<code>senelcemil3/seneller-pos</code>) otomatik yüklendi!
+                    </div>
+
+                    <h6 class="fw-bold text-dark">Nasıl Başlatılır? (Sadece 3 Tık):</h6>
+                    <ol class="small mb-3">
+                        <li class="mb-2">
+                            Aşağıdaki <strong>"Render.com'da Tek Tıkla Başlat"</strong> butonuna basın ve <strong>GitHub ile Giriş Yap (Sign in with GitHub)</strong> deyin (<code>senelcemil3</code> hesabınız).
+                        </li>
+                        <li class="mb-2">
+                            Açılan ekranda <strong>Blueprint Name</strong> kısmına <code>seneller-pos</code> yazıp mavi <strong>Apply / Deploy</strong> butonuna basın.
+                        </li>
+                        <li class="mb-1">
+                            2 dakika içinde size <code>https://seneller-pos.onrender.com</code> adresini verecek. O adresi yukarıdaki kutuya yapıştırıp <strong>"Sabit Kapıyı Buluta Bağla"</strong> dediğiniz an bilgisayarınızı kapatabilirsiniz!
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="https://render.com/deploy?repo=https://github.com/senelcemil3/seneller-pos" target="_blank" class="btn btn-primary btn-lg fw-bold">
+                        <i class="bi bi-cloud-upload-fill me-2"></i>Render.com'da Tek Tıkla Başlat
+                    </a>
+                    <a href="https://github.com/senelcemil3/seneller-pos" target="_blank" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-github me-1"></i>GitHub Deponuzu Görüntüle (senelcemil3/seneller-pos)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEÇENEK 2: PYTHONANYWHERE (HİÇ UYKUYA GİRMEYEN 7/24 SUNUCU) -->
+    <div class="col-lg-6">
+        <div class="card card-snl h-100 border-dark border-2">
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-hdd-network-fill text-warning me-1"></i>Seçenek 2: PythonAnywhere (7/24 Kesintisiz & Kalıcı Disk)</span>
+                <span class="badge bg-success">Kalıcı Veritabanı • Uyku Yok</span>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <div class="alert alert-secondary py-2 small mb-3">
+                        <i class="bi bi-shield-lock-fill me-1"></i>
+                        <strong>Avantajı:</strong> PythonAnywhere üzerinde hem 342 ürününüz hem de sahada girilen tüm fişler kalıcı diskte saklanır ve sunucu 15 dakika boş kalsa bile <strong>asla uyku moduna girmez</strong>.
+                    </div>
+
+                    <h6 class="fw-bold text-dark">3 Adımda PythonAnywhere Kurulumu:</h6>
+                    <ol class="small mb-3">
+                        <li class="mb-2">
+                            <a href="https://www.pythonanywhere.com/registration/register/beginner/" target="_blank" class="fw-bold">PythonAnywhere Ücretsiz Hesap Açın</a> ve üst menüden <strong>Consoles &rarr; Bash</strong> ekranına tıklayın.
+                        </li>
+                        <li class="mb-2">
+                            Açılan siyah ekrana şu tek satırlık otomatik kurulum komutunu yapıştırıp Enter'a basın:
+                            <div class="input-group input-group-sm mt-1">
+                                <input type="text" id="paKomutInput" class="form-control font-monospace bg-light" readonly
+                                       value="git clone https://github.com/senelcemil3/seneller-pos.git && cd seneller-pos && pip install --user -r requirements.txt">
+                                <button class="btn btn-dark" type="button" onclick="navigator.clipboard.writeText(document.getElementById('paKomutInput').value); alert('Kurulum komutu kopyalandı!');">
+                                    <i class="bi bi-clipboard"></i> Kopyala
+                                </button>
+                            </div>
+                        </li>
+                        <li class="mb-1">
+                            Üst menüden <strong>Web &rarr; Add a new web app &rarr; Manual Configuration (Python 3.10+)</strong> seçin. <strong>WSGI configuration file</strong> içine şu 3 satırı yazıp yeşil <strong>Reload</strong> butonuna basın:
+                            <pre class="bg-light p-2 rounded border small mt-1 mb-0">import sys
+sys.path.insert(0, '/home/KULLANICI_ADINIZ/seneller-pos')
+from wsgi import application</pre>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.bulut_paket_indir') }}" class="btn btn-warning text-dark fw-bold">
+                        <i class="bi bi-file-earmark-zip-fill me-1"></i>Hazır Bulut Kurulum Paketini İndir (.ZIP)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

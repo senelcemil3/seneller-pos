@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}AI PDF -> Montaj & Satış Formu Dönüştürücü{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold mb-0">
+            <span class="badge bg-warning text-dark me-2"><i class="bi bi-stars"></i> YAPAY ZEKA</span>
+            PDF Malzeme Listesi -> Montaj & Satış Formu Dönüştürücü
+        </h4>
+        <div class="text-muted small">Müşterilere verilen PDF faturaları, teklifleri veya malzeme listelerini otomatik okuyup stoktaki ürünlerle eşleştirerek montaj/satış formuna çevirir.</div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- SOL: PDF Yükleme ve Hazır PDF Seçimi -->
+    <div class="col-12 col-lg-5">
+        <div class="card card-snl p-3 mb-3 border-top border-4 border-warning">
+            <h6 class="fw-bold mb-2"><i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i> 1. PDF Dosyası Yükleyin</h6>
+            <form id="pdfYukleForm" onsubmit="pdfDosyasiCozumle(event)">
+                <div class="mb-3">
+                    <input type="file" id="pdfInput" name="pdf_dosyasi" accept=".pdf" class="form-control form-control-lg" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                    <i class="bi bi-magic me-1"></i> Yapay Zeka ile PDF'i Analiz Et ve Forma Dönüştür
+                </button>
+            </form>
+        </div>
+
+        {% if hazir_pdfler %}
+        <div class="card card-snl p-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-folder2-open text-primary me-1"></i> <code>satışlar/</code> Klasörünüzdeki PDF'ler (Tek Tıkla Dönüştür)</h6>
+            <p class="small text-muted mb-2">Bilgisayarınızdaki mevcut müşteri PDF'lerinden birine tıklayarak nasıl otomatik forma dönüştüğünü hemen test edin:</p>
+            <div class="list-group list-group-flush small">
+                {% for f in hazir_pdfler %}
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 fw-semibold"
+                        onclick="hazirPdfCozumle({{ f|tojson }})">
+                    <span><i class="bi bi-file-earmark-pdf text-danger me-2"></i>{{ f }}</span>
+                    <span class="badge bg-dark">Forma Çevir <i class="bi bi-arrow-right"></i></span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- SAĞ: Çözümlenen Normal Montaj / Satış Formu -->
+    <div class="col-12 col-lg-7">
+        <div class="card card-snl p-3 h-100" id="formKarti">
+            <div id="bosDurum" class="text-center text-muted py-5">
+                <i class="bi bi-robot fs-1 text-warning d-block mb-2"></i>
+                <h6>Henüz bir PDF seçilmedi</h6>
+                <p class="small mb-0">Soldan bir PDF yükleyin veya hazır müşteri PDF'lerinden birine tıklayın.<br>Sistem müşteri adını, tarihi ve kullanılan tüm malzemeleri (model kodlarıyla stoktan bularak) burada normal forma dönüştürecektir.</p>
+            </div>
+
+            <div id="cozumlenenForm" class="d-none">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                    <h5 class="fw-bold text-success mb-0"><i class="bi bi-check-circle-fill me-1"></i> PDF Başarıyla Normal Forma Dönüştürüldü</h5>
+                    <span class="badge bg-warning text-dark" id="faturaNoRozet"></span>
+                </div>
+
+                <!-- Müşteri ve İşlem Bilgileri -->
+                <div class="row g-2 bg-light p-3 rounded-3 border mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold mb-1">İşlem Türü</label>
+                        <select id="aiIslemTipi" class="form-select form-select-sm fw-bold">
+                            <option value="montaj">Saha Montaj / Servis Kaydı</option>
+                            <option value="satis">Tezgâh POS Satışı</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold mb-1">PDF'den Okunan Müşteri / Cari Adı *</label>
+                        <input type="text" id="aiMusteriAdi" class="form-control form-control-sm fw-bold text-primary">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold mb-1">Yapılan İş / Montaj Başlığı</label>
+                        <input type="text" id="aiMontajBasligi" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold mb-1">Montaj Adresi / Not</label>
+                        <input type="text" id="aiMontajAdresi" class="form-control form-control-sm" placeholder="Varsa mahalle/bina/konum...">
+                    </div>
+                </div>
+
+                <!-- Ürün Kalemleri Tablosu -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">PDF'den Çıkarılan ve Stokla Eşleştirilen Malzemeler</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="aiYeniSatirEkle()">
+                        <i class="bi bi-plus-circle"></i> Satır Ekle
+                    </button>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered align-middle small mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Stok Eşleşmesi</th>
+                                <th>Ürün / Malzeme Adı (ve Model Kodu)</th>
+                                <th class="text-center" style="width:90px;">Adet/Mt</th>
+                                <th class="text-end" style="width:110px;">Birim Fiyat ₺</th>
+                                <th class="text-end" style="width:100px;">Toplam ₺</th>
+                                <th style="width:36px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiKalemlerGovde"></tbody>
+                    </table>
+                </div>
+
+                <!-- Ödeme ve Kaydetme -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center bg-dark text-white p-3 rounded-3 mb-3">
+                    <div>
+                        <span class="small text-secondary d-block">FORM GENEL TOPLAMI</span>
+                        <span class="small text-warning" id="aiEslesmeOzet"></span>
+                    </div>
+                    <div class="fs-3 fw-bold text-warning" id="aiGenelToplam">0,00 ₺</div>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-12 col-md-4">
+                        <select id="aiOdemeYontemi" class="form-select fw-bold">
+                            <option value="veresiye">Cariye / Açık Hesaba İşle</option>
+                            <option value="nakit">Nakit Ödendi</option>
+                            <option value="kart">Kredi Kartı ile Ödendi</option>
+                            <option value="havale">Havale / EFT ile Ödendi</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <button type="button" class="btn btn-outline-primary w-100 fw-bold" onclick="posSepetineAktar()">
+                            <i class="bi bi-cart-check me-1"></i> POS Sepetine Gönder
+                        </button>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <button type="button" class="btn btn-success w-100 fw-bold" onclick="aiFormuDogrudanKaydet()">
+                            <i class="bi bi-check2-all me-1"></i> Doğrudan Montaj/Satış Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let aiKalemler = [];
+let aiEslesenMusteriId = "";
+
+async function pdfDosyasiCozumle(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById("pdfInput");
+    if (!fileInput.files.length) return;
+    const fd = new FormData();
+    fd.append("pdf_dosyasi", fileInput.files[0]);
+    await pdfIstekGonder(fd);
+}
+
+async function hazirPdfCozumle(dosyaAdi) {
+    const fd = new FormData();
+    fd.append("hazir_dosya", dosyaAdi);
+    await pdfIstekGonder(fd);
+}
+
+async function pdfIstekGonder(formData) {
+    document.getElementById("bosDurum").innerHTML = `<div class="spinner-border text-primary my-4"></div><div>PDF yapay zeka ile analiz ediliyor ve stoklarla eşleştiriliyor...</div>`;
+    document.getElementById("bosDurum").classList.remove("d-none");
+    document.getElementById("cozumlenenForm").classList.add("d-none");
+
+    const res = await fetch("/api/ai-pdf-cozumle", { method: "POST", body: formData });
+    const d = await res.json();
+    if (!d.basarili) {
+        alert(d.mesaj || "PDF okunamadı!");
+        return;
+    }
+
+    document.getElementById("bosDurum").classList.add("d-none");
+    document.getElementById("cozumlenenForm").classList.remove("d-none");
+
+    document.getElementById("aiMusteriAdi").value = d.musteri_adi || "";
+    document.getElementById("aiMontajBasligi").value = d.montaj_basligi || "";
+    document.getElementById("aiMontajAdresi").value = d.montaj_adresi || "";
+    document.getElementById("faturaNoRozet").textContent = d.fatura_no ? `Belge No: ${d.fatura_no} (${d.tarih})` : `Tarih: ${d.tarih}`;
+    aiEslesenMusteriId = d.eslesen_musteri_id || "";
+    aiKalemler = d.kalemler || [];
+    aiTabloCiz();
+}
+
+function aiTabloCiz() {
+    const tbody = document.getElementById("aiKalemlerGovde");
+    let genel = 0;
+    let eslesenSayi = 0;
+
+    tbody.innerHTML = aiKalemler.map((k, idx) => {
+        const satirToplam = (k.miktar || 0) * (k.birim_fiyat || 0);
+        genel += satirToplam;
+        if (k.eslesti) eslesenSayi++;
+
+        const rozet = k.eslesti
+            ? `<span class="badge bg-success"><i class="bi bi-check-lg"></i> Stokta Bulundu (Stok: ${k.stok_miktari})</span>`
+            : `<span class="badge bg-secondary">Serbest / Hizmet Kalemi</span>`;
+
+        return `
+        <tr>
+            <td>${rozet}</td>
+            <td>
+                <input type="text" class="form-control form-control-sm fw-semibold" value="${k.urun_adi}"
+                       onchange="aiKalemler[${idx}].urun_adi = this.value">
+                ${k.pdf_urun_adi !== k.urun_adi ? `<div class="text-muted" style="font-size:0.7rem;">PDF'deki yazı: ${k.pdf_urun_adi}</div>` : ''}
+            </td>
+            <td>
+                <input type="number" step="0.1" class="form-control form-control-sm text-center fw-bold" value="${k.miktar}"
+                       oninput="aiKalemler[${idx}].miktar = parseFloat(this.value)||0; aiTabloCiz();">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control form-control-sm text-end" value="${k.birim_fiyat}"
+                       oninput="aiKalemler[${idx}].birim_fiyat = parseFloat(this.value)||0; aiTabloCiz();">
+            </td>
+            <td class="text-end fw-bold">${satirToplam.toFixed(2)} ₺</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm text-danger p-0" onclick="aiKalemler.splice(${idx},1); aiTabloCiz();">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join("");
+
+    document.getElementById("aiGenelToplam").textContent = genel.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ₺";
+    document.getElementById("aiEslesmeOzet").textContent = `${aiKalemler.length} kalemden ${eslesenSayi} tanesi stoktaki ürünlerle birebir eşleşti`;
+}
+
+function aiYeniSatirEkle() {
+    aiKalemler.push({
+        eslesti: false,
+        urun_id: null,
+        barkod: "",
+        kod: "",
+        pdf_urun_adi: "Ek Malzeme / İşçilik",
+        urun_adi: "Ek Malzeme / İşçilik",
+        birim: "Adet",
+        miktar: 1,
+        birim_fiyat: 0
+    });
+    aiTabloCiz();
+}
+
+function posSepetineAktar() {
+    if (!aiKalemler.length) return;
+    let sepetler = JSON.parse(localStorage.getItem("seneller_pos_sepetler") || '{"1":[],"2":[],"3":[],"4":[]}');
+    sepetler["1"] = aiKalemler.map(k => ({
+        urun_id: k.urun_id,
+        barkod: k.barkod || "",
+        kod: k.kod || "",
+        urun_adi: k.urun_adi,
+        birim: k.birim || "Adet",
+        miktar: k.miktar,
+        birim_fiyat: k.birim_fiyat
+    }));
+    localStorage.setItem("seneller_pos_sepetler", JSON.stringify(sepetler));
+    window.location.href = "/pos?mod=" + document.getElementById("aiIslemTipi").value;
+}
+
+async function aiFormuDogrudanKaydet() {
+    if (!aiKalemler.length) {
+        alert("Listede hiç ürün yok!");
+        return;
+    }
+    const musteriAdi = document.getElementById("aiMusteriAdi").value.trim();
+    const payload = {
+        islem_tipi: document.getElementById("aiIslemTipi").value,
+        musteri_id: aiEslesenMusteriId || null,
+        yeni_musteri: (!aiEslesenMusteriId && musteriAdi) ? {
+            ad_soyad: musteriAdi,
+            telefon: "",
+            adres: document.getElementById("aiMontajAdresi").value.trim()
+        } : null,
+        montaj_basligi: document.getElementById("aiMontajBasligi").value.trim(),
+        montaj_adresi: document.getElementById("aiMontajAdresi").value.trim(),
+        odeme_yontemi: document.getElementById("aiOdemeYontemi").value,
+        aciklama: "AI PDF Dönüştürücü ile aktarıldı (" + document.getElementById("faturaNoRozet").textContent + ")",
+        kalemler: aiKalemler
+    };
+
+    const res = await fetch("/api/islem-kaydet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    const sonuc = await res.json();
+    if (sonuc.basarili) {
+        window.location.href = sonuc.detay_url;
+    } else {
+        alert(sonuc.mesaj || "Kaydedilirken hata oluştu.");
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Fiş Detayı - {{ islem.fis_no }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+            <a href="{{ url_for('main.islemler_listesi') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Listeye Dön
+            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-success fw-bold" onclick="whatsappFisGonder()">
+                    <i class="bi bi-whatsapp me-1"></i> WhatsApp'tan Gönder
+                </button>
+                <button class="btn btn-primary fw-bold" onclick="window.print()">
+                    <i class="bi bi-printer-fill me-1"></i> Fiş / Fatura Yazdır
+                </button>
+                <a href="{{ url_for('main.pos_ekrani') }}" class="btn btn-outline-dark fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i> Yeni İşlem
+                </a>
+                {% if g.user.is_patron or g.user.yetki_urun_sil %}
+                <form method="POST" action="{{ url_for('main.islem_sil', id=islem.id) }}" onsubmit="return confirm('Bu fişi iptal etmek istediğinize emin misiniz? Stoklar ve bakiye geri alınacaktır.');">
+                    <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> İptal Et</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card card-snl p-4">
+            <!-- Başlık -->
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                <div>
+                    <h4 class="fw-bold mb-1">{{ g.ayarlar.sirket_adi }}</h4>
+                    <div class="small text-muted">{{ g.ayarlar.alt_baslik }}</div>
+                    {% if g.ayarlar.telefon %}<div class="small">Tel: {{ g.ayarlar.telefon }}</div>{% endif %}
+                    {% if g.ayarlar.adres %}<div class="small">{{ g.ayarlar.adres }}</div>{% endif %}
+                </div>
+                <div class="text-end">
+                    <span class="badge fs-6 {% if islem.islem_tipi == 'montaj' %}bg-warning text-dark{% else %}bg-primary{% endif %} mb-1">
+                        {% if islem.islem_tipi == 'montaj' %}MONTAJ & SERVİS FORMU{% elif islem.islem_tipi == 'satis' %}SATIŞ FİŞİ{% else %}ALIŞ FATURASI{% endif %}
+                    </span>
+                    <div class="fw-bold font-monospace fs-5">{{ islem.fis_no }}</div>
+                    <div class="small text-muted">Tarih: {{ islem.tarih.strftime('%d.%m.%Y %H:%M') }}</div>
+                    <div class="small text-muted">Personel: {{ islem.kullanici.ad_soyad if islem.kullanici else '-' }}</div>
+                </div>
+            </div>
+
+            <!-- Müşteri & Montaj Bilgileri -->
+            <div class="row g-2 bg-light p-3 rounded mb-3 small">
+                <div class="col-md-6">
+                    <strong>Müşteri / Cari:</strong>
+                    {% if islem.musteri %}
+                    <a href="{{ url_for('cari.musteri_detay', id=islem.musteri.id) }}" class="fw-bold text-dark">{{ islem.musteri.ad_soyad }}</a>
+                    ({{ islem.musteri.telefon or '-' }})
+                    {% elif islem.tedarikci %}
+                    {{ islem.tedarikci.firma_adi }}
+                    {% else %}
+                    Perakende Müşteri
+                    {% endif %}
+                </div>
+                {% if islem.montaj_basligi %}
+                <div class="col-md-6"><strong>Yapılan İş / Montaj:</strong> {{ islem.montaj_basligi }}</div>
+                {% endif %}
+                {% if islem.montaj_adresi %}
+                <div class="col-12"><strong>Montaj Adresi / Yeri:</strong> {{ islem.montaj_adresi }}</div>
+                {% endif %}
+                {% if islem.aciklama %}
+                <div class="col-12"><strong>Not:</strong> {{ islem.aciklama }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Kalemler Tablosu -->
+            <table class="table table-bordered align-middle small mb-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Barkod</th>
+                        <th>Ürün / Malzeme / Hizmet</th>
+                        <th>Marka / Model</th>
+                        <th class="text-center">Miktar</th>
+                        <th class="text-end">Birim Fiyat</th>
+                        <th class="text-end">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for k in islem.kalemler %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="font-monospace">{{ k.barkod or '-' }}</td>
+                        <td class="fw-semibold">{{ k.urun_adi }}</td>
+                        <td>{{ k.marka_model or '-' }}</td>
+                        <td class="text-center fw-bold">{{ k.miktar|miktar_fmt }} {{ k.birim }}</td>
+                        <td class="text-end">{{ k.birim_fiyat|para }} ₺</td>
+                        <td class="text-end fw-bold">{{ k.toplam_tutar|para }} ₺</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Toplamlar -->
+            <div class="row justify-content-end">
+                <div class="col-12 col-sm-6">
+                    <table class="table table-sm small mb-0">
+                        <tr>
+                            <td>Ara Toplam:</td>
+                            <td class="text-end">{{ islem.ara_toplam|para }} ₺</td>
+                        </tr>
+                        {% if islem.iskonto_tutari > 0 %}
+                        <tr>
+                            <td>İskonto:</td>
+                            <td class="text-end text-danger">-{{ islem.iskonto_tutari|para }} ₺</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-dark fw-bold fs-6">
+                            <td>GENEL TOPLAM:</td>
+                            <td class="text-end">{{ islem.genel_toplam|para }} ₺</td>
+                        </tr>
+                        <tr>
+                            <td>Ödeme Şekli:</td>
+                            <td class="text-end fw-bold">{{ islem.odeme_yontemi|upper }}</td>
+                        </tr>
+                        {% if islem.kalan_veresiye > 0 %}
+                        <tr class="text-danger fw-bold">
+                            <td>Cariye (Açık Hesaba) Yazılan:</td>
+                            <td class="text-end">{{ islem.kalan_veresiye|para }} ₺</td>
+                        </tr>
+                        {% endif %}
+                        {% if (g.user.is_patron or g.user.yetki_maliyet_gor) and islem.islem_tipi in ('satis', 'montaj') %}
+                        <tr class="no-print text-success">
+                            <td>Bu İşlemden Net Kâr (Sadece Patron Görür):</td>
+                            <td class="text-end fw-bold">{{ islem.net_kar|para }} ₺</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <div class="text-center text-muted small mt-4 pt-2 border-top">
+                {{ g.ayarlar.fis_alt_notu }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function whatsappFisGonder() {
+    let tel = "{{ (islem.musteri.telefon if islem.musteri else '')|replace(' ', '')|replace('-', '') }}";
+    if (tel.startsWith("0")) tel = "9" + tel;
+    else if (tel.startsWith("5")) tel = "90" + tel;
+
+    let satirlar = [
+        "*{{ g.ayarlar.sirket_adi }}*",
+        "Fiş No: {{ islem.fis_no }} ({{ islem.tarih.strftime('%d.%m.%Y %H:%M') }})",
+        {% if islem.musteri %}"Müşteri: {{ islem.musteri.ad_soyad }}",{% endif %}
+        {% if islem.montaj_basligi %}"Yapılan İş: {{ islem.montaj_basligi }}",{% endif %}
+        {% if islem.montaj_adresi %}"Montaj Yeri: {{ islem.montaj_adresi }}",{% endif %}
+        "--------------------------",
+        "*Kullanılan / Satılan Ürünler:*"
+    ];
+    {% for k in islem.kalemler %}
+    satirlar.push("• {{ k.miktar|miktar_fmt }} {{ k.birim }} {{ k.urun_adi }} ({{ k.toplam_tutar|para }} TL)");
+    {% endfor %}
+    satirlar.push("--------------------------");
+    satirlar.push("*GENEL TOPLAM: {{ islem.genel_toplam|para }} TL*");
+    {% if islem.kalan_veresiye > 0 %}
+    satirlar.push("Açık Hesap (Kalan): {{ islem.kalan_veresiye|para }} TL");
+    {% endif %}
+
+    const metin = encodeURIComponent(satirlar.join("\n"));
+    const url = tel ? `https://wa.me/${tel}?text=${metin}` : `https://wa.me/?text=${metin}`;
+    window.open(url, "_blank");
+}
+</script>
+{% endblock %}

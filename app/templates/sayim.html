@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Mobil & Barkodlu Hızlı Stok Sayımı{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 justify-content-center">
+    <div class="col-12 col-lg-6">
+        <div class="card card-snl p-3">
+            <h5 class="fw-bold mb-1"><i class="bi bi-upc-scan text-primary me-2"></i>Hızlı Stok Sayımı & Fiyat Güncelleme</h5>
+            <p class="text-muted small mb-3">BenimPOS Mobil mantığıyla telefon kamerasını veya barkod okuyucuyu kullanarak reyon sayımı yapın.</p>
+
+            <div class="input-group input-group-lg mb-3">
+                <input type="text" id="sayimBarkod" class="form-control fw-bold" placeholder="Barkod veya Model Kodu okutun..." autofocus>
+                <button class="btn btn-primary" type="button" onclick="sayimBarkodAra()">Bul</button>
+                <button class="btn btn-warning text-dark fw-bold" type="button" onclick="sayimKameraAc()">
+                    <i class="bi bi-camera-fill me-1"></i> Kamera
+                </button>
+            </div>
+
+            <div id="sayimKameraKutu" class="d-none mb-3 border rounded p-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-bold">Kamera Barkod Okuyucu</span>
+                    <button class="btn btn-sm btn-danger" onclick="sayimKameraKapat()">Kapat</button>
+                </div>
+                <div id="sayim-qr" style="width:100%;"></div>
+            </div>
+
+            <!-- Bulunan Ürün Kartı -->
+            <div id="sayimUrunKarti" class="d-none border border-primary rounded-3 p-3 bg-light">
+                <input type="hidden" id="suId">
+                <div class="badge bg-secondary mb-1" id="suGrup"></div>
+                <h5 class="fw-bold mb-1" id="suAd"></h5>
+                <div class="small text-muted mb-3" id="suDetay"></div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Yeni Stok Adedi</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('suStok').value = (+document.getElementById('suStok').value - 1)">-</button>
+                            <input type="number" step="0.01" id="suStok" class="form-control text-center fw-bold fs-5">
+                            <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('suStok').value = (+document.getElementById('suStok').value + 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Satış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" id="suSatis" class="form-control fw-bold fs-5">
+                    </div>
+                </div>
+                <button class="btn btn-success btn-lg w-100 fw-bold" onclick="sayimKaydet()">
+                    <i class="bi bi-check2-circle me-1"></i> Stoğu & Fiyatı Güncelle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let sayimQr = null;
+
+document.getElementById("sayimBarkod").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sayimBarkodAra();
+    }
+});
+
+async function sayimBarkodAra() {
+    const kod = document.getElementById("sayimBarkod").value.trim();
+    if (!kod) return;
+    const res = await fetch(`/api/barkod/${encodeURIComponent(kod)}`);
+    if (!res.ok) {
+        alert("Ürün bulunamadı: " + kod);
+        return;
+    }
+    const u = await res.json();
+    document.getElementById("suId").value = u.id;
+    document.getElementById("suGrup").textContent = u.grup;
+    document.getElementById("suAd").textContent = u.ad;
+    document.getElementById("suDetay").textContent = `Barkod: ${u.barkod || '-'} | Marka/Model: ${u.marka || ''} ${u.kod || ''}`;
+    document.getElementById("suStok").value = u.stok_miktari;
+    document.getElementById("suSatis").value = u.satis_fiyati;
+    document.getElementById("sayimUrunKarti").classList.remove("d-none");
+}
+
+async function sayimKaydet() {
+    const id = document.getElementById("suId").value;
+    const stok = document.getElementById("suStok").value;
+    const satis = document.getElementById("suSatis").value;
+    const res = await fetch("/sayim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urun_id: id, stok_miktari: stok, satis_fiyati: satis })
+    });
+    const sonuc = await res.json();
+    if (sonuc.basarili) {
+        alert(sonuc.mesaj);
+        document.getElementById("sayimBarkod").value = "";
+        document.getElementById("sayimBarkod").focus();
+    }
+}
+
+function sayimKameraAc() {
+    document.getElementById("sayimKameraKutu").classList.remove("d-none");
+    sayimQr = new Html5Qrcode("sayim-qr");
+    sayimQr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 240, height: 140 } },
+        (decoded) => {
+            document.getElementById("sayimBarkod").value = decoded;
+            sayimKameraKapat();
+            sayimBarkodAra();
+        },
+        () => {}
+    );
+}
+
+function sayimKameraKapat() {
+    if (sayimQr) sayimQr.stop().then(() => sayimQr.clear()).catch(() => {});
+    document.getElementById("sayimKameraKutu").classList.add("d-none");
+}
+</script>
+{% endblock %}

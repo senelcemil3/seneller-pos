@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Genel Özet{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h4 class="fw-bold mb-0">{{ g.ayarlar.sirket_adi }}</h4>
+        <div class="text-muted small">{{ g.ayarlar.alt_baslik }}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('main.pos_ekrani', mod='satis') }}" class="btn btn-primary fw-bold shadow-sm">
+            <i class="bi bi-upc-scan me-1"></i> Hızlı Satış (POS)
+        </a>
+        <a href="{{ url_for('main.pos_ekrani', mod='montaj') }}" class="btn btn-warning fw-bold shadow-sm text-dark">
+            <i class="bi bi-tools me-1"></i> Yeni Montaj Kaydı Gir
+        </a>
+        <a href="{{ url_for('stok.excel_islemleri') }}" class="btn btn-outline-success fw-semibold">
+            <i class="bi bi-file-earmark-excel me-1"></i> Excel Yükle / İndir
+        </a>
+    </div>
+</div>
+
+{% if toplam_urun_cesidi == 0 %}
+<div class="alert alert-warning border-warning shadow-sm d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+        <strong>Stok listeniz şu an boş!</strong> Ürünlerinizi <strong>Excel Yükleme</strong> ekranından veya <strong>Stok & Ürünler</strong> menüsünden hemen ekleyebilirsiniz.
+    </div>
+    <a href="{{ url_for('stok.excel_islemleri') }}" class="btn btn-sm btn-dark fw-bold">
+        <i class="bi bi-upload me-1"></i> Excel'den Ürün Yükle
+    </a>
+</div>
+{% endif %}
+
+<!-- Özet Kartlar -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl stat-card p-3 h-100" style="border-left-color: #2563eb;">
+            <div class="text-muted small fw-semibold">Kayıtlı Ürün Çeşidi</div>
+            <div class="fs-3 fw-bold text-primary">{{ toplam_urun_cesidi }}</div>
+            <div class="small text-muted">Kritik Stok: <span class="text-danger fw-bold">{{ kritik_stok_sayisi }}</span> kalem</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl stat-card p-3 h-100" style="border-left-color: #d97706;">
+            <div class="text-muted small fw-semibold">Bugünkü İşlemler</div>
+            <div class="fs-3 fw-bold text-warning">{{ bugun_satis_adedi + bugun_montaj_adedi }} <span class="fs-6 text-muted">Fiş</span></div>
+            <div class="small text-muted">{{ bugun_satis_adedi }} Satış • <strong>{{ bugun_montaj_adedi }} Montaj</strong></div>
+        </div>
+    </div>
+
+    {% if g.user.is_patron or g.user.yetki_rapor_gor %}
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl stat-card p-3 h-100" style="border-left-color: #10b981;">
+            <div class="text-muted small fw-semibold">Bugünkü Ciro</div>
+            <div class="fs-4 fw-bold text-success">{{ bugun_ciro|para }} ₺</div>
+            {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+            <div class="small text-muted">Bugün Net Kâr: <strong class="text-success">{{ bugun_kar|para }} ₺</strong></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl stat-card p-3 h-100" style="border-left-color: #ef4444;">
+            <div class="text-muted small fw-semibold">Toplam Müşteri Alacağı (Cari)</div>
+            <div class="fs-4 fw-bold text-danger">{{ toplam_alacak|para }} ₺</div>
+            <div class="small text-muted">Toptancı Borcu: <strong>{{ toplam_borc|para }} ₺</strong></div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    <!-- Son Montaj Kayıtları -->
+    <div class="col-12 col-xl-6">
+        <div class="card card-snl p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-tools text-warning me-2"></i>Son Yapılan Montajlar (Kime / Nereye / Ne Kullanıldı)</h6>
+                <a href="{{ url_for('main.islemler_listesi', tip='montaj') }}" class="btn btn-sm btn-outline-secondary">Tüm Montajlar</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Müşteri & Montaj Yeri</th>
+                            <th>Kullanılan Malzemeler</th>
+                            <th class="text-end">Tutar</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in son_montajlar %}
+                        <tr>
+                            <td class="text-nowrap">{{ m.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                <div class="fw-bold">{{ m.musteri.ad_soyad if m.musteri else 'Genel Müşteri' }}</div>
+                                {% if m.montaj_basligi %}<span class="badge bg-warning text-dark">{{ m.montaj_basligi }}</span>{% endif %}
+                                {% if m.montaj_adresi %}<div class="text-muted"><i class="bi bi-geo-alt"></i> {{ m.montaj_adresi }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {% for k in m.kalemler[:3] %}
+                                    <span class="badge bg-light text-dark border">{{ k.miktar|miktar_fmt }}x {{ k.urun_adi[:22] }}</span>
+                                {% endfor %}
+                                {% if m.kalemler|length > 3 %}
+                                    <span class="badge bg-secondary">+{{ m.kalemler|length - 3 }} kalem</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold">{{ m.genel_toplam|para }} ₺</td>
+                            <td class="text-end">
+                                <a href="{{ url_for('main.islem_detay', id=m.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">Henüz montaj kaydı girilmedi.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kritik Stok & Son Satışlar -->
+    <div class="col-12 col-xl-6">
+        <div class="card card-snl p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Kritik / Azalan Stoklar</h6>
+                <a href="{{ url_for('stok.urunler_listesi', durum='kritik') }}" class="btn btn-sm btn-outline-danger">Tümünü Gör</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Barkod / Kod</th>
+                            <th>Ürün Adı</th>
+                            <th>Grup</th>
+                            <th class="text-end">Kalan Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in kritik_urunler %}
+                        <tr>
+                            <td class="text-muted">{{ u.barkod or u.kod or '-' }}</td>
+                            <td class="fw-semibold">{{ u.ad }}</td>
+                            <td><span class="badge bg-secondary">{{ u.grup }}</span></td>
+                            <td class="text-end">
+                                <span class="badge {% if u.stok_miktari <= 0 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                    {{ u.stok_miktari|miktar_fmt }} {{ u.birim }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">Kritik seviyede ürün bulunmuyor.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

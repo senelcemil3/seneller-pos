@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% block title %}Stok & Ürünler{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-box-seam text-primary me-2"></i>Stok & Ürün Yönetimi</h4>
+        <div class="text-muted small">Toplam {{ urunler|length }} ürün listeleniyor</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        {% if g.user.is_patron or g.user.yetki_stok_duzenle %}
+        <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#yeniUrunModal">
+            <i class="bi bi-plus-lg me-1"></i> Yeni Ürün Ekle
+        </button>
+        {% if g.user.is_patron %}
+        <button class="btn btn-warning text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#topluFiyatModal">
+            <i class="bi bi-currency-exchange me-1"></i> Dolar / Kâr ile Toplu Fiyatlandır
+        </button>
+        {% endif %}
+        <a href="{{ url_for('stok.excel_islemleri') }}" class="btn btn-success fw-semibold">
+            <i class="bi bi-file-earmark-excel me-1"></i> Excel Yükle / İndir
+        </a>
+        {% endif %}
+        <a href="{{ url_for('stok.hizli_sayim') }}" class="btn btn-outline-dark fw-semibold">
+            <i class="bi bi-camera me-1"></i> Barkodlu Hızlı Sayım
+        </a>
+    </div>
+</div>
+
+<!-- Filtre ve Arama -->
+<div class="card card-snl p-3 mb-3">
+    <form method="GET" action="{{ url_for('stok.urunler_listesi') }}" class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Barkod, ürün adı, marka veya model (kod) ara...">
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="grup" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Tüm Gruplar --</option>
+                {% for g_ad in gruplar %}
+                <option value="{{ g_ad }}" {% if secili_grup == g_ad %}selected{% endif %}>{{ g_ad }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="durum" class="form-select" onchange="this.form.submit()">
+                <option value="">Tüm Stoklar</option>
+                <option value="kritik" {% if durum == 'kritik' %}selected{% endif %}>Kritik / Azalanlar</option>
+                <option value="tukenen" {% if durum == 'tukenen' %}selected{% endif %}>Bitenler (<=0)</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-dark w-100">Filtrele</button>
+            <a href="{{ url_for('stok.urunler_listesi') }}" class="btn btn-outline-secondary">Sıfırla</a>
+        </div>
+    </form>
+</div>
+
+<!-- Ürün Tablosu -->
+<div class="card card-snl p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-dark">
+                <tr>
+                    <th>Barkod</th>
+                    <th>Grup</th>
+                    <th>Ürün Adı (Kategori)</th>
+                    <th>Marka</th>
+                    <th>Model / Kod</th>
+                    <th class="text-center">Adet / Stok</th>
+                    {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+                    <th class="text-end">Alış ₺</th>
+                    <th class="text-end">Alış $</th>
+                    {% endif %}
+                    <th class="text-end">Satış Fiyatı ₺</th>
+                    <th class="text-end">İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in urunler %}
+                <tr>
+                    <td class="font-monospace text-muted">{{ u.barkod or '-' }}</td>
+                    <td><span class="badge bg-secondary">{{ u.grup }}</span></td>
+                    <td>
+                        <span class="fw-bold">{{ u.ad }}</span>
+                        {% if u.kod %}
+                        <span class="badge bg-warning-subtle text-dark border border-warning ms-1 font-monospace">{{ u.kod }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.marka or '-' }}</td>
+                    <td>
+                        {% if u.kod %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace fs-6">{{ u.kod }}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge fs-6 {% if u.stok_miktari <= 0 %}bg-danger{% elif u.stok_miktari <= u.kritik_stok %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                            {{ u.stok_miktari|miktar_fmt }} {{ u.birim }}
+                        </span>
+                    </td>
+                    {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+                    <td class="text-end text-muted">{{ u.alis_fiyati_tl|para }} ₺</td>
+                    <td class="text-end text-muted">{% if u.alis_fiyati_usd > 0 %}{{ u.alis_fiyati_usd|para }} ${% else %}-{% endif %}</td>
+                    {% endif %}
+                    <td class="text-end fw-bold fs-6 text-dark">{{ u.satis_fiyati|para }} ₺</td>
+                    <td class="text-end text-nowrap">
+                        <button type="button" class="btn btn-sm btn-outline-dark" title="Bu ürün kime/hangi montaja gitti?"
+                                onclick="urunHareketleriAc({{ u.id }})">
+                            <i class="bi bi-clock-history"></i>
+                        </button>
+                        {% if g.user.is_patron or g.user.yetki_stok_duzenle %}
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick='urunDuzenleModalAc({{ u.id }}, {{ (u.barkod or "")|tojson }}, {{ (u.kod or "")|tojson }}, {{ u.ad|tojson }}, {{ (u.marka or "")|tojson }}, {{ (u.grup or "")|tojson }}, {{ u.birim|tojson }}, {{ u.stok_miktari }}, {{ u.kritik_stok }}, {{ u.alis_fiyati_tl }}, {{ u.alis_fiyati_usd }}, {{ u.satis_fiyati }}, {{ u.satis_fiyati_2 }})'>
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        {% endif %}
+                        {% if g.user.is_patron or g.user.yetki_urun_sil %}
+                        <form method="POST" action="{{ url_for('stok.urun_sil', id=u.id) }}" class="d-inline" onsubmit="return confirm('Bu ürünü silmek istediğinize emin misiniz?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-5">
+                        Kayıtlı ürün bulunamadı. <a href="{{ url_for('stok.excel_islemleri') }}" class="fw-bold">Excel'den toplu ürün yüklemek için tıklayın.</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Yeni Ürün Ekle Modal -->
+<div class="modal fade" id="yeniUrunModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form method="POST" action="{{ url_for('stok.urunler_listesi') }}" class="modal-content">
+            <input type="hidden" name="form_islem" value="ekle">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title"><i class="bi bi-plus-circle me-1"></i> Yeni Ürün Kartı Oluştur</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Barkod</label>
+                        <input type="text" name="barkod" class="form-control" placeholder="Barkod okutun veya yazın">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Grup (Ör: mouse, kamera, LNB)</label>
+                        <input type="text" name="grup" class="form-control" list="grupListesi" placeholder="Genel">
+                        <datalist id="grupListesi">
+                            {% for g_ad in gruplar %}<option value="{{ g_ad }}">{% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Marka</label>
+                        <input type="text" name="marka" class="form-control" placeholder="Ör: Hikvision, Logitech, Platoon">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold">Ürün Adı / Açıklaması *</label>
+                        <input type="text" name="ad" class="form-control" placeholder="Ör: Hikvision 2MP AHD Bullet Kamera" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Model / Stok Kodu</label>
+                        <input type="text" name="kod" class="form-control" placeholder="Ör: PL-1866, M-171">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Birim</label>
+                        <select name="birim" class="form-select">
+                            <option value="Adet">Adet</option>
+                            <option value="Metre">Metre</option>
+                            <option value="Paket">Paket</option>
+                            <option value="Set">Set</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Mevcut Stok Adedi</label>
+                        <input type="number" step="0.01" name="stok_miktari" class="form-control" value="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Kritik Stok Uyarısı</label>
+                        <input type="number" step="0.01" name="kritik_stok" class="form-control" value="2">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-primary">Satış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="satis_fiyati" class="form-control fw-bold" value="0">
+                    </div>
+                    {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Alış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="alis_fiyati_tl" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Alış Fiyatı (Dolar $)</label>
+                        <input type="number" step="0.01" name="alis_fiyati_usd" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">2. Satış Fiyatı (Esnaf/Montaj ₺)</label>
+                        <input type="number" step="0.01" name="satis_fiyati_2" class="form-control" value="0">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="submit" class="btn btn-primary fw-bold">Ürünü Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Ürün Düzenle Modal -->
+<div class="modal fade" id="duzenleUrunModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form method="POST" action="{{ url_for('stok.urunler_listesi', q=q, grup=secili_grup) }}" class="modal-content">
+            <input type="hidden" name="form_islem" value="duzenle">
+            <input type="hidden" name="urun_id" id="duz_id">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title"><i class="bi bi-pencil-square me-1"></i> Ürün Kartını Düzenle</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Barkod</label>
+                        <input type="text" name="barkod" id="duz_barkod" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Grup</label>
+                        <input type="text" name="grup" id="duz_grup" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Marka</label>
+                        <input type="text" name="marka" id="duz_marka" class="form-control">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold">Ürün Adı *</label>
+                        <input type="text" name="ad" id="duz_ad" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Model / Kod</label>
+                        <input type="text" name="kod" id="duz_kod" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Birim</label>
+                        <select name="birim" id="duz_birim" class="form-select">
+                            <option value="Adet">Adet</option>
+                            <option value="Metre">Metre</option>
+                            <option value="Paket">Paket</option>
+                            <option value="Set">Set</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Stok Miktarı</label>
+                        <input type="number" step="0.01" name="stok_miktari" id="duz_stok" class="form-control fw-bold">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Kritik Stok</label>
+                        <input type="number" step="0.01" name="kritik_stok" id="duz_kritik" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-primary">Satış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="satis_fiyati" id="duz_satis" class="form-control fw-bold">
+                    </div>
+                    {% if g.user.is_patron or g.user.yetki_maliyet_gor %}
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Alış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="alis_fiyati_tl" id="duz_alis_tl" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Alış Fiyatı (Dolar $)</label>
+                        <input type="number" step="0.01" name="alis_fiyati_usd" id="duz_alis_usd" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">2. Satış Fiyatı (₺)</label>
+                        <input type="number" step="0.01" name="satis_fiyati_2" id="duz_satis_2" class="form-control">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="submit" class="btn btn-primary fw-bold">Değişiklikleri Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Dolar Kuru & Kâr Oranı ile Toplu Fiyatlandırma Modal -->
+<div class="modal fade" id="topluFiyatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="{{ url_for('stok.toplu_fiyatlandir') }}" class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h6 class="modal-title fw-bold"><i class="bi bi-currency-exchange me-1"></i> Dolar Kuru & Kâr Marjı ile Otomatik Satış Fiyatı Hesapla</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small py-2">
+                    Mevcut Dolar Kuru: <strong>1$ = {{ g.ayarlar.dolar_kuru|para }} ₺</strong><br>
+                    Alış fiyatı (TL veya Dolar) kayıtlı olan ürünlerin üzerine belirlediğiniz kâr oranını ekleyerek satış fiyatını otomatik doldurur.
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Eklenecek Kâr Oranı (%)</label>
+                    <input type="number" step="1" name="kar_yuzdesi" class="form-control form-control-lg fw-bold" value="40" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Hangi Ürünlere Uygulansın?</label>
+                    <select name="kapsam" class="form-select">
+                        <option value="sadece_sifir">Sadece Satış Fiyatı 0,00 ₺ Olan Ürünlere</option>
+                        <option value="tumu">Tüm Ürünlerin Satış Fiyatını Yeniden Hesapla</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Grup Filtresi</label>
+                    <select name="grup" class="form-select">
+                        <option value="">Tüm Gruplar</option>
+                        {% for g_ad in gruplar %}
+                        <option value="{{ g_ad }}" {% if secili_grup == g_ad %}selected{% endif %}>{{ g_ad }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-dark fw-bold w-100">Satış Fiyatlarını Otomatik Hesapla</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Ürün Hareket Geçmişi (Kime / Hangi Montaja Gitti?) Modal -->
+<div class="modal fade" id="urunHareketModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title"><i class="bi bi-clock-history text-warning me-2"></i><span id="uhBaslik">Ürün Hareket Geçmişi</span></h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle small mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>İşlem</th>
+                                <th class="text-center">Miktar</th>
+                                <th class="text-center">Kalan Stok</th>
+                                <th>Müşteri / Montaj Yeri / Açıklama</th>
+                                <th>Personel</th>
+                            </tr>
+                        </thead>
+                        <tbody id="uhGovde"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function urunHareketleriAc(id) {
+    new bootstrap.Modal(document.getElementById("urunHareketModal")).show();
+    document.getElementById("uhGovde").innerHTML = `<tr><td colspan="6" class="text-center py-4">Yükleniyor...</td></tr>`;
+    const res = await fetch(`/api/urun-hareketleri/${id}`);
+    const d = await res.json();
+    document.getElementById("uhBaslik").textContent = d.urun_ad || "Ürün Geçmişi";
+    if (!d.hareketler || !d.hareketler.length) {
+        document.getElementById("uhGovde").innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Bu ürüne ait hareket kaydı yok.</td></tr>`;
+        return;
+    }
+    document.getElementById("uhGovde").innerHTML = d.hareketler.map(h => `
+        <tr>
+            <td class="text-nowrap">${h.tarih}</td>
+            <td><span class="badge ${h.degisim < 0 ? 'bg-warning text-dark' : 'bg-success'}">${h.tip}</span></td>
+            <td class="text-center fw-bold ${h.degisim < 0 ? 'text-danger' : 'text-success'}">${h.degisim > 0 ? '+' : ''}${h.degisim}</td>
+            <td class="text-center fw-semibold">${h.sonraki_stok}</td>
+            <td>
+                ${h.musteri ? `<strong>${h.musteri}</strong> ` : ''}
+                ${h.montaj_yeri ? `<span class="text-muted">(${h.montaj_yeri})</span> ` : ''}
+                ${h.islem_id ? `<a href="/islem/${h.islem_id}" class="badge bg-primary text-decoration-none">${h.fis_no}</a>` : `<span class="text-muted">${h.aciklama}</span>`}
+            </td>
+            <td>${h.personel}</td>
+        </tr>
+    `).join("");
+}
+
+function urunDuzenleModalAc(id, barkod, kod, ad, marka, grup, birim, stok, kritik, alis_tl, alis_usd, satis, satis_2) {
+    document.getElementById("duz_id").value = id;
+    document.getElementById("duz_barkod").value = barkod;
+    document.getElementById("duz_kod").value = kod;
+    document.getElementById("duz_ad").value = ad;
+    document.getElementById("duz_marka").value = marka;
+    document.getElementById("duz_grup").value = grup;
+    document.getElementById("duz_birim").value = birim || "Adet";
+    document.getElementById("duz_stok").value = stok;
+    document.getElementById("duz_kritik").value = kritik;
+    document.getElementById("duz_satis").value = satis;
+    if (document.getElementById("duz_alis_tl")) {
+        document.getElementById("duz_alis_tl").value = alis_tl;
+        document.getElementById("duz_alis_usd").value = alis_usd;
+        document.getElementById("duz_satis_2").value = satis_2;
+    }
+    new bootstrap.Modal(document.getElementById("duzenleUrunModal")).show();
+}
+</script>
+{% endblock %}

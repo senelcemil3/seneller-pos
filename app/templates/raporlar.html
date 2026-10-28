@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Raporlar & Kasa Yönetimi{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-graph-up-arrow text-success me-2"></i>Kâr/Zarar Raporları, Kasa & Personel Analizi</h4>
+        <div class="text-muted small">{{ bas_tarih }} ile {{ bit_tarih }} arası finansal özet</div>
+    </div>
+    <button class="btn btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#giderModal">
+        <i class="bi bi-dash-circle me-1"></i> Masraf / Gider / Gelir İşle
+    </button>
+</div>
+
+<!-- Tarih Filtresi -->
+<div class="card card-snl p-3 mb-3">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-6 col-md-4">
+            <label class="form-label small fw-bold mb-1">Başlangıç Tarihi</label>
+            <input type="date" name="bas_tarih" value="{{ bas_tarih }}" class="form-control">
+        </div>
+        <div class="col-6 col-md-4">
+            <label class="form-label small fw-bold mb-1">Bitiş Tarihi</label>
+            <input type="date" name="bit_tarih" value="{{ bit_tarih }}" class="form-control">
+        </div>
+        <div class="col-12 col-md-4">
+            <button type="submit" class="btn btn-dark w-100 fw-bold">Tarih Aralığını Raporla</button>
+        </div>
+    </form>
+</div>
+
+<!-- Özet Finans Kartları -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl p-3 border-start border-4 border-primary">
+            <div class="small text-muted fw-bold">TOPLAM CİRO (SATIŞ + MONTAJ)</div>
+            <div class="fs-4 fw-bold text-primary">{{ toplam_ciro|para }} ₺</div>
+            <div class="small text-muted">POS: {{ satis_ciro|para }} ₺ • Montaj: {{ montaj_ciro|para }} ₺</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl p-3 border-start border-4 border-secondary">
+            <div class="small text-muted fw-bold">SATILAN ÜRÜN MALİYETİ</div>
+            <div class="fs-4 fw-bold text-secondary">{{ toplam_maliyet|para }} ₺</div>
+            <div class="small text-muted">Brüt Kâr: <strong>{{ brut_kar|para }} ₺</strong></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl p-3 border-start border-4 border-danger">
+            <div class="small text-muted fw-bold">TOPLAM GİDER & ÖDEMELER</div>
+            <div class="fs-4 fw-bold text-danger">{{ toplam_gider|para }} ₺</div>
+            <div class="small text-muted">Kasa Tahsilat: {{ toplam_tahsilat|para }} ₺</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-snl p-3 border-start border-4 border-success">
+            <div class="small text-muted fw-bold">NET KAZANÇ (KÂR)</div>
+            <div class="fs-4 fw-bold text-success">{{ net_kar|para }} ₺</div>
+            <div class="small text-muted">Masraflar düşüldükten sonra</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Personel Performansı -->
+    <div class="col-12 col-lg-6">
+        <div class="card card-snl p-3 h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-people-fill text-primary me-1"></i> Personel Bazlı Satış & Montaj Performansı</h6>
+            <table class="table table-sm table-hover align-middle small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Personel</th>
+                        <th class="text-center">POS Satış</th>
+                        <th class="text-center">Saha Montaj</th>
+                        <th class="text-end">Toplam Ciro</th>
+                        <th class="text-end">Net Kâr</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p_ad, d in personel_ozet.items() %}
+                    <tr>
+                        <td class="fw-bold">{{ p_ad }}</td>
+                        <td class="text-center"><span class="badge bg-primary">{{ d.satis_adet }}</span></td>
+                        <td class="text-center"><span class="badge bg-warning text-dark">{{ d.montaj_adet }}</span></td>
+                        <td class="text-end fw-bold">{{ d.ciro|para }} ₺</td>
+                        <td class="text-end text-success fw-bold">{{ d.kar|para }} ₺</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">Bu tarih aralığında işlem yok.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- En Çok Giden Ürünler -->
+    <div class="col-12 col-lg-6">
+        <div class="card card-snl p-3 h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-warning me-1"></i> En Çok Satılan / Montajda Kullanılan Ürünler</h6>
+            <table class="table table-sm table-hover align-middle small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ürün / Malzeme</th>
+                        <th class="text-center">Toplam Miktar</th>
+                        <th class="text-end">Ciro Katkısı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in urun_performans %}
+                    <tr>
+                        <td class="fw-semibold">{{ u.urun_adi }}</td>
+                        <td class="text-center fw-bold">{{ u.toplam_miktar|miktar_fmt }} {{ u.birim }}</td>
+                        <td class="text-end fw-bold">{{ u.toplam_tutar|para }} ₺</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center text-muted py-3">Kayıt yok.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kasa Hareketleri -->
+    <div class="col-12">
+        <div class="card card-snl p-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-safe2-fill text-dark me-1"></i> Kasa Defteri (Tahsilatlar, Masraflar ve Toptancı Ödemeleri)</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Tür</th>
+                            <th>Kategori</th>
+                            <th>Açıklama</th>
+                            <th>Yöntem</th>
+                            <th>Personel</th>
+                            <th class="text-end">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in kasa_hareketleri %}
+                        <tr>
+                            <td>{{ k.tarih.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>
+                                {% if k.tip in ('tahsilat', 'gelir') %}
+                                <span class="badge bg-success">GİRİŞ (+)</span>
+                                {% else %}
+                                <span class="badge bg-danger">ÇIKIŞ (-)</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-semibold">{{ k.kategori }}</td>
+                            <td>{{ k.aciklama }}</td>
+                            <td>{{ k.odeme_yontemi|upper }}</td>
+                            <td>{{ k.kullanici.ad_soyad if k.kullanici else '-' }}</td>
+                            <td class="text-end fw-bold {% if k.tip in ('tahsilat', 'gelir') %}text-success{% else %}text-danger{% endif %}">
+                                {% if k.tip in ('tahsilat', 'gelir') %}+{% else %}-{% endif %}{{ k.tutar|para }} ₺
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">Kasa hareketi bulunamadı.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Masraf / Gider Modal -->
+<div class="modal fade" id="giderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title">Kasaya Gider (Masraf) veya Ek Gelir İşle</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">İşlem Yönü</label>
+                    <select name="tip" class="form-select">
+                        <option value="gider">Gider / Masraf Çıkışı (-)</option>
+                        <option value="gelir">Ekstra Gelir Girişi (+)</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Kategori</label>
+                    <input type="text" name="kategori" class="form-control" list="giderKatList" placeholder="Ör: Araç Yakıt, Yemek, Kira, Elektrik..." required>
+                    <datalist id="giderKatList">
+                        <option value="Saha Araç Yakıt / Mazot">
+                        <option value="Personel Yemek / Harcırah">
+                        <option value="Dükkân Kira / Fatura">
+                        <option value="Sarf Malzeme (Vida, Dübel, Bant)">
+                    </datalist>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Tutar (₺) *</label>
+                    <input type="number" step="0.01" name="tutar" class="form-control form-control-lg fw-bold" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Ödeme Yöntemi</label>
+                    <select name="odeme_yontemi" class="form-select">
+                        <option value="nakit">Nakit</option>
+                        <option value="kart">Kredi Kartı</option>
+                        <option value="havale">Havale / EFT</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Açıklama</label>
+                    <input type="text" name="aciklama" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary fw-bold w-100">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

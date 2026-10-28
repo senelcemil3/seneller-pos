@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Toptancılar & Firmalar{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-truck text-primary me-2"></i>Toptancılar & Firmalar (Alış Faturaları)</h4>
+        <div class="text-muted small">Mal aldığınız toptancılar, alış faturaları ve borç takibi</div>
+    </div>
+    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#yeniTedarikciModal">
+        <i class="bi bi-plus-lg me-1"></i> Yeni Toptancı / Firma Ekle
+    </button>
+</div>
+
+<div class="card card-snl p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-dark">
+                <tr>
+                    <th>Firma / Toptancı Adı</th>
+                    <th>Yetkili Kişi</th>
+                    <th>Telefon</th>
+                    <th>Adres / Not</th>
+                    <th class="text-end">Kalan Borcumuz</th>
+                    <th class="text-end">İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tedarikciler %}
+                <tr>
+                    <td class="fw-bold fs-6">
+                        <a href="{{ url_for('cari.tedarikci_detay', id=t.id) }}" class="text-decoration-none text-dark">{{ t.firma_adi }}</a>
+                    </td>
+                    <td>{{ t.yetkili or '-' }}</td>
+                    <td>{{ t.telefon or '-' }}</td>
+                    <td class="text-muted">{{ t.adres or '-' }}</td>
+                    <td class="text-end fw-bold fs-6 {% if t.bakiye > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ t.bakiye|para }} ₺
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('cari.tedarikci_detay', id=t.id) }}" class="btn btn-sm btn-primary fw-semibold">
+                            <i class="bi bi-file-earmark-plus me-1"></i> Alış Faturası / Cari
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-5">Kayıtlı toptancı bulunamadı.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Yeni Tedarikçi Modal -->
+<div class="modal fade" id="yeniTedarikciModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title">Yeni Toptancı / Firma Kartı Aç</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Firma Adı *</label>
+                    <input type="text" name="firma_adi" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Yetkili Adı</label>
+                    <input type="text" name="yetkili" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Telefon</label>
+                    <input type="text" name="telefon" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Adres</label>
+                    <input type="text" name="adres" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Devreden Borç Bakiyemiz (₺)</label>
+                    <input type="number" step="0.01" name="acilis_bakiye" class="form-control" value="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary fw-bold">Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

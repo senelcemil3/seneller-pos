@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Giriş Yap{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 82vh;">
+    <div class="col-12 col-sm-10 col-md-6 col-lg-4">
+        <div class="card card-snl p-4 shadow-lg border-0">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning text-dark rounded-4 p-3 mb-3 shadow-sm">
+                    <i class="bi bi-lightning-charge-fill fs-1"></i>
+                </div>
+                <h3 class="fw-bold mb-1">{{ g.ayarlar.sirket_adi }}</h3>
+                <p class="text-muted small mb-0">Barkodlu Satış, Stok ve Saha Montaj Takip Sistemi</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Kullanıcı Adı</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                        <input type="text" name="kullanici_adi" id="kullanici_adi" class="form-control" placeholder="admin veya eleman" required autofocus>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Şifre / PIN</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                        <input type="password" name="sifre" id="sifre" class="form-control" placeholder="••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow-sm">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Sisteme Giriş Yap
+                </button>
+            </form>
+
+            {% if kullanicilar %}
+            <hr class="my-4">
+            <div class="small text-muted text-center mb-2">Hızlı Personel Seçimi (Varsayılan Şifre: <code>1234</code>):</div>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                {% for k in kullanicilar %}
+                <button type="button" class="btn btn-sm {% if k.rol == 'patron' %}btn-outline-warning text-dark{% else %}btn-outline-primary{% endif %} fw-semibold"
+                        onclick="document.getElementById('kullanici_adi').value='{{ k.kullanici_adi }}'; document.getElementById('sifre').focus();">
+                    <i class="bi {% if k.rol == 'patron' %}bi-shield-lock-fill{% else %}bi-person-badge{% endif %} me-1"></i>
+                    {{ k.ad_soyad }} ({{ k.kullanici_adi }})
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
