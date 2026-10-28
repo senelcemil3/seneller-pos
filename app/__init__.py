@@ -128,9 +128,14 @@ def create_app(config_class=Config):
     def service_worker():
         js = """
         self.addEventListener('install', (e) => { self.skipWaiting(); });
-        self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+        self.addEventListener('activate', (e) => {
+            e.waitUntil(
+                caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n))))
+                .then(() => self.clients.claim())
+            );
+        });
         self.addEventListener('fetch', (e) => {
-            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+            e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => caches.match(e.request)));
         });
         """
         return Response(js, mimetype="application/javascript")

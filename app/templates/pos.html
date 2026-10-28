@@ -41,23 +41,23 @@
 {% block content %}
 <!-- Üst Mod Seçimi & Çoklu Sepet Sekmeleri (BenimPOS Tarzı) -->
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div class="d-flex flex-wrap gap-2">
-        <button type="button" id="btnModSatis" class="btn fw-bold shadow-sm {% if islem_modu != 'montaj' %}btn-primary{% else %}btn-outline-primary bg-white{% endif %}" onclick="modDegistir('satis')">
+    <div class="d-flex flex-wrap gap-2 w-100 w-xl-auto">
+        <button type="button" id="btnModSatis" class="btn fw-bold shadow-sm flex-fill {% if islem_modu != 'montaj' %}btn-primary{% else %}btn-outline-primary bg-white{% endif %}" onclick="modDegistir('satis')">
             <i class="bi bi-upc-scan me-1"></i> Tezgâh Hızlı Satış (POS)
         </button>
-        <button type="button" id="btnModMontaj" class="btn fw-bold shadow-sm {% if islem_modu == 'montaj' %}btn-warning text-dark{% else %}btn-outline-warning bg-white text-dark{% endif %}" onclick="modDegistir('montaj')">
+        <button type="button" id="btnModMontaj" class="btn fw-bold shadow-sm flex-fill {% if islem_modu == 'montaj' %}btn-warning text-dark{% else %}btn-outline-warning bg-white text-dark{% endif %}" onclick="modDegistir('montaj')">
             <i class="bi bi-tools me-1"></i> Saha Montaj / Servis Kaydı
         </button>
-        <a href="{{ url_for('ai.ai_pdf_ekrani') }}" class="btn btn-dark fw-bold shadow-sm">
+        <a href="{{ url_for('ai.ai_pdf_ekrani') }}" class="btn btn-dark fw-bold shadow-sm flex-fill">
             <i class="bi bi-stars text-warning me-1"></i> PDF'den Forma Çevir (AI)
         </a>
     </div>
 
     <!-- Bekleyen Sepet Sekmeleri (Fiş 1..4) -->
-    <div class="d-flex flex-wrap align-items-center gap-1 bg-white p-1 rounded-3 shadow-sm border">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 bg-white p-1 rounded-3 shadow-sm border w-100 w-xl-auto">
         <span class="small text-muted px-2 fw-semibold d-none d-sm-inline">Sepetler:</span>
         {% for idx in range(1, 5) %}
-        <button type="button" class="btn btn-sm btn-light fis-tab-btn {% if idx == 1 %}active{% endif %}" id="fisTab{{ idx }}" onclick="sepetSekmesiDegistir({{ idx }})">
+        <button type="button" class="btn btn-sm btn-light fis-tab-btn flex-fill {% if idx == 1 %}active{% endif %}" id="fisTab{{ idx }}" onclick="sepetSekmesiDegistir({{ idx }})">
             Fiş {{ idx }} <span class="badge bg-secondary ms-1" id="fisSayac{{ idx }}">0</span>
         </button>
         {% endfor %}
@@ -186,14 +186,14 @@
 
             <!-- Sepet Tablosu -->
             <div class="table-responsive mb-2" style="max-height: 36vh; overflow-y: auto;">
-                <table class="table table-sm align-middle mb-0">
+                <table class="table table-sm align-middle mb-0" style="min-width: 410px;">
                     <thead class="table-light">
                         <tr>
-                            <th>Ürün / Malzeme</th>
-                            <th class="text-center" style="width: 110px;">Miktar</th>
-                            <th class="text-end" style="width: 100px;">Birim ₺</th>
-                            <th class="text-end" style="width: 95px;">Toplam</th>
-                            <th style="width: 32px;"></th>
+                            <th style="min-width: 140px;">Ürün / Malzeme</th>
+                            <th class="text-center" style="width: 102px;">Miktar</th>
+                            <th class="text-end" style="width: 88px;">Birim ₺</th>
+                            <th class="text-end" style="width: 82px;">Toplam</th>
+                            <th style="width: 28px;"></th>
                         </tr>
                     </thead>
                     <tbody id="sepetGovde">
@@ -368,14 +368,14 @@
         const etiket = document.getElementById("modBaslikEtiketi");
 
         if (yeniMod === "montaj") {
-            btnMontaj.className = "btn fw-bold shadow-sm btn-warning text-dark";
-            btnSatis.className = "btn fw-bold shadow-sm btn-outline-primary bg-white";
+            btnMontaj.className = "btn fw-bold shadow-sm flex-fill btn-warning text-dark";
+            btnSatis.className = "btn fw-bold shadow-sm flex-fill btn-outline-primary bg-white";
             banner.className = "rounded-3 p-3 mb-3 mod-banner-montaj";
             ekAlanlar.classList.remove("d-none");
             etiket.innerHTML = '<i class="bi bi-tools me-1"></i> Montaj Müşterisi & Kurulum Yeri';
         } else {
-            btnSatis.className = "btn fw-bold shadow-sm btn-primary";
-            btnMontaj.className = "btn fw-bold shadow-sm btn-outline-warning bg-white text-dark";
+            btnSatis.className = "btn fw-bold shadow-sm flex-fill btn-primary";
+            btnMontaj.className = "btn fw-bold shadow-sm flex-fill btn-outline-warning bg-white text-dark";
             banner.className = "rounded-3 p-3 mb-3 mod-banner-satis";
             ekAlanlar.classList.add("d-none");
             etiket.innerHTML = '<i class="bi bi-person-lines-fill me-1"></i> Müşteri (Cari) Seçimi';

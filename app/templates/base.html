@@ -123,26 +123,80 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 64px;
+            height: 62px;
             background: #0f172a;
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
             align-items: center;
             z-index: 1040;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.25);
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.28);
+            padding: 0 4px;
         }
         .mobile-bottom-nav a {
             color: #94a3b8;
             text-decoration: none;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 600;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            justify-content: center;
+            gap: 1px;
+            flex: 1 1 0;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 4px 2px;
         }
-        .mobile-bottom-nav a i { font-size: 1.25rem; }
+        .mobile-bottom-nav a i { font-size: 1.18rem; line-height: 1.1; }
         .mobile-bottom-nav a.active { color: #38bdf8; }
+
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Mobil ve Tablet Özel Düzenlemeler */
+        @media (max-width: 991.98px) {
+            body { padding-bottom: 130px; }
+            #mainNav {
+                background: #0f172a;
+                border-top: 1px solid #334155;
+                margin-top: 8px;
+                padding: 10px 6px;
+                border-radius: 10px;
+                max-height: 78vh;
+                overflow-y: auto;
+            }
+            #mainNav .navbar-nav {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px !important;
+                width: 100%;
+            }
+            #mainNav .nav-item,
+            #mainNav .nav-link-snl {
+                width: 100%;
+                justify-content: flex-start;
+                padding: 9px 11px !important;
+                font-size: 0.85rem;
+            }
+            #mainNav .dropdown-menu-snl {
+                grid-column: 1 / -1;
+                position: static !important;
+                transform: none !important;
+                width: 100%;
+                margin-top: 4px;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            h4 { font-size: 1.12rem !important; }
+            h5 { font-size: 1.02rem !important; }
+            .card-snl { border-radius: 11px; }
+            .stat-card .fs-3, .stat-card .fs-4 { font-size: 1.2rem !important; }
+            .modal-dialog { margin: 0.5rem; }
+        }
 
         @media print {
             .no-print, .snl-navbar, .mobile-bottom-nav { display: none !important; }
